@@ -1,0 +1,1475 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة تحكم المايك</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎙</text></svg>">
+<style>
+/* ============ Claymorphism tokens ============ */
+:root{
+  --bg:#ebe8f7; --card:#f7f5ff; --card2:#efecfb; --text:#3a3558; --muted:#7d7899;
+  --sh-dark:rgba(150,140,200,.45); --sh-light:rgba(255,255,255,.95);
+  --in-dark:rgba(150,140,200,.28); --in-light:rgba(255,255,255,.85);
+  --peach:#ff9e7d; --peach-d:#e9785a; --mint:#6fd3b3; --mint-d:#3fae8c; --sky:#86bdfc; --sky-d:#5a97e0;
+  --lilac:#b7a2ff; --lilac-d:#8f76ee; --sun:#ffd46b; --rose:#ff8fa3; --rose-d:#e45d79;
+  --screen:#2b2842; --screen-line:#3b3858;
+  --good:var(--mint-d); --warn:#d9a21a; --bad:var(--rose-d);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#24223a; --card:#2e2b48; --card2:#35325a; --text:#ecebff; --muted:#a9a4cc;
+    --sh-dark:rgba(8,6,20,.55); --sh-light:rgba(90,84,140,.35);
+    --in-dark:rgba(8,6,20,.35); --in-light:rgba(120,112,180,.25);
+    --screen:#1a1830; --screen-line:#35325a; --warn:#ffd46b; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#24223a; --card:#2e2b48; --card2:#35325a; --text:#ecebff; --muted:#a9a4cc;
+  --sh-dark:rgba(8,6,20,.55); --sh-light:rgba(90,84,140,.35);
+  --in-dark:rgba(8,6,20,.35); --in-light:rgba(120,112,180,.25);
+  --screen:#1a1830; --screen-line:#35325a; --warn:#ffd46b; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 "Noto Sans Arabic","Cairo","Tajawal",system-ui,Ubuntu,sans-serif;min-height:100vh}
+.clay{background:var(--card);border-radius:28px;
+  box-shadow:12px 12px 26px var(--sh-dark),-10px -10px 22px var(--sh-light),inset 5px 5px 10px var(--in-light),inset -5px -5px 10px var(--in-dark)}
+.pressed{background:var(--card2);box-shadow:inset 6px 6px 12px var(--in-dark),inset -6px -6px 12px var(--in-light)}
+
+/* ============ layout ============ */
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+header{display:flex;align-items:center;gap:14px;padding:14px 20px;margin-bottom:22px;flex-wrap:wrap}
+header .logo{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font-size:24px;background:var(--peach);
+  box-shadow:6px 6px 12px var(--sh-dark),inset 3px 3px 6px rgba(255,255,255,.5),inset -3px -3px 6px rgba(0,0,0,.12)}
+header h1{font-size:19px;margin:0;font-weight:800}
+header .srv{color:var(--muted);font-size:12.5px}
+.sp{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;font-size:12.5px;font-weight:700;background:var(--card2);
+  box-shadow:inset 3px 3px 6px var(--in-dark),inset -3px -3px 6px var(--in-light)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mint)}
+
+/* tabs */
+nav.tabs{display:flex;gap:12px;padding:10px;margin-bottom:24px;overflow-x:auto;scrollbar-width:none}
+nav.tabs button{flex:1;min-width:max-content;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:14.5px;
+  padding:12px 16px;border-radius:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+nav.tabs button .ic{font-size:19px}
+nav.tabs button:hover{color:var(--text)}
+nav.tabs button.active{color:#2c2147;background:var(--lilac);
+  box-shadow:6px 6px 14px var(--sh-dark),inset 4px 4px 8px rgba(255,255,255,.45),inset -4px -4px 8px rgba(0,0,0,.12)}
+.panel{display:none;animation:pop .25s ease}
+.panel.show{display:block}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}
+
+.grid{display:grid;gap:22px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:900px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.g2,.g3{grid-template-columns:minmax(0,1fr)}.wrap{padding:14px 14px 40px}}
+.card{padding:20px 22px}
+.card h2{font-size:17px;margin:0 0 4px;display:flex;align-items:center;gap:10px;font-weight:800}
+.card h2 .emo{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;font-size:19px;
+  box-shadow:4px 4px 9px var(--sh-dark),inset 2px 2px 5px rgba(255,255,255,.5),inset -2px -2px 5px rgba(0,0,0,.1)}
+.lead{color:var(--muted);font-size:13px;margin:4px 0 16px}
+.bg-peach{background:var(--peach)}.bg-mint{background:var(--mint)}.bg-sky{background:var(--sky)}.bg-lilac{background:var(--lilac)}.bg-sun{background:var(--sun)}.bg-rose{background:var(--rose)}
+
+/* ============ controls ============ */
+button,select,input[type=number]{font:inherit;color:var(--text)}
+.btn{border:0;cursor:pointer;padding:10px 18px;border-radius:18px;font-weight:800;background:var(--card);
+  box-shadow:5px 5px 11px var(--sh-dark),-4px -4px 9px var(--sh-light),inset 2px 2px 4px var(--in-light),inset -2px -2px 4px var(--in-dark);transition:transform .12s,box-shadow .12s}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(1px);box-shadow:inset 4px 4px 8px var(--in-dark),inset -4px -4px 8px var(--in-light)}
+.btn.primary{background:var(--peach);color:#3b1a0d}
+.btn.mint{background:var(--mint);color:#0f3a2d}
+.btn.danger{background:var(--rose);color:#3d0c18}
+.btn.on{background:var(--sky);color:#0c2746}
+.btn.big{padding:14px 26px;font-size:16px;border-radius:22px}
+.btn.round{width:54px;height:54px;padding:0;border-radius:18px;font-size:18px}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+select,input[type=number]{border:0;padding:10px 14px;border-radius:16px;background:var(--card2);cursor:pointer;max-width:100%;
+  box-shadow:inset 4px 4px 8px var(--in-dark),inset -4px -4px 8px var(--in-light)}
+input[type=number]{width:90px;direction:ltr;cursor:text}
+label.chk{display:inline-flex;gap:8px;align-items:center;cursor:pointer;user-select:none;font-weight:700}
+/* toggle switch */
+.switch{appearance:none;width:46px;height:26px;border-radius:99px;background:var(--card2);position:relative;cursor:pointer;flex:none;
+  box-shadow:inset 3px 3px 6px var(--in-dark),inset -3px -3px 6px var(--in-light);transition:.2s}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:var(--card);
+  box-shadow:2px 2px 5px var(--sh-dark);transition:.2s}
+.switch:checked{background:var(--mint)}
+.switch:checked::after{right:23px}
+/* range */
+input[type=range]{direction:ltr;width:100%;appearance:none;height:14px;border-radius:99px;background:var(--card2);cursor:pointer;
+  box-shadow:inset 3px 3px 6px var(--in-dark),inset -3px -3px 6px var(--in-light)}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:24px;height:24px;border-radius:50%;background:var(--peach);
+  box-shadow:3px 3px 7px var(--sh-dark),inset 2px 2px 4px rgba(255,255,255,.55),inset -2px -2px 4px rgba(0,0,0,.15)}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border:0;border-radius:50%;background:var(--peach);box-shadow:3px 3px 7px var(--sh-dark)}
+.eq input[type=range]{writing-mode:vertical-lr;direction:rtl;width:14px;height:auto;flex:1}
+
+.muted{color:var(--muted)}.small{font-size:12.5px}
+.mono{font-family:var(--mono);font-size:11.5px;direction:ltr;unicode-bidi:isolate}
+.ltr{direction:ltr;unicode-bidi:isolate}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11.5px;font-weight:800;white-space:nowrap;
+  box-shadow:inset 2px 2px 4px rgba(255,255,255,.45),inset -2px -2px 4px rgba(0,0,0,.1)}
+.b-hardware{background:var(--mint);color:#0f3a2d}.b-filter{background:var(--peach);color:#3b1a0d}
+.b-virtual{background:var(--sky);color:#0c2746}.b-monitor,.b-unknown{background:var(--card2);color:var(--muted)}
+.star{color:#e0a800}
+
+/* help (collapsible) */
+details.hint{margin-top:8px}
+details.hint>summary{list-style:none;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--lilac-d);display:inline-flex;gap:6px;align-items:center;
+  padding:4px 12px;border-radius:99px;background:var(--card2);box-shadow:3px 3px 6px var(--sh-dark),-2px -2px 5px var(--sh-light)}
+details.hint>summary::-webkit-details-marker{display:none}
+details.hint[open]>summary{box-shadow:inset 2px 2px 5px var(--in-dark),inset -2px -2px 5px var(--in-light)}
+.help{font-size:13px;color:var(--text);opacity:.9;background:var(--card2);border-radius:18px;padding:12px 14px;margin-top:8px;
+  box-shadow:inset 4px 4px 8px var(--in-dark),inset -4px -4px 8px var(--in-light)}
+.help .up{color:var(--mint-d);font-weight:800}.help .down{color:var(--peach-d);font-weight:800}
+.now{font-size:13px;margin-top:8px;padding:8px 12px;border-radius:14px;background:var(--card2);border-inline-start:5px solid var(--sky)}
+.now.good{border-color:var(--mint)}.now.warn{border-color:var(--sun)}.now.bad{border-color:var(--rose)}
+
+/* field */
+.field{padding:16px 18px;border-radius:24px}
+.field .lbl{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:800;margin-bottom:10px}
+.field .val{font-family:var(--mono);font-size:13px;font-weight:800;padding:3px 10px;border-radius:99px;background:var(--card2);direction:ltr;
+  box-shadow:inset 2px 2px 4px var(--in-dark),inset -2px -2px 4px var(--in-light)}
+
+/* chain */
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:8px 0 16px}
+.node{padding:10px 14px;border-radius:20px;min-width:0;background:var(--card);box-shadow:5px 5px 11px var(--sh-dark),-4px -4px 9px var(--sh-light),inset 2px 2px 4px var(--in-light)}
+.node .t{font-weight:800}.node .s{font-size:11.5px;color:var(--muted)}
+.node.hw{border-bottom:4px solid var(--mint)}.node.flt{border-bottom:4px solid var(--peach)}.node.src{border-bottom:4px solid var(--lilac)}
+.arrow{color:var(--muted);font-size:22px;font-weight:800}
+
+/* source cards */
+#sources{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.src{padding:18px 20px;border-radius:26px;background:var(--card);box-shadow:8px 8px 18px var(--sh-dark),-7px -7px 15px var(--sh-light),inset 3px 3px 6px var(--in-light),inset -3px -3px 6px var(--in-dark)}
+.src .name{font-weight:800;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src .gainrow{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;font-weight:800}
+
+/* params (existing filter) */
+.param{padding:14px 16px;border-radius:22px;background:var(--card);margin-bottom:14px;box-shadow:6px 6px 14px var(--sh-dark),-5px -5px 12px var(--sh-light),inset 2px 2px 4px var(--in-light)}
+.param .top{display:grid;grid-template-columns:minmax(140px,240px) minmax(0,1fr) 96px;gap:14px;align-items:center}
+@media(max-width:640px){.param .top{grid-template-columns:1fr}}
+.param .k{font-weight:800}
+.param .k .mono{display:block;color:var(--muted);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.fnode>summary{cursor:pointer;list-style:none;margin:0 0 12px;font-weight:800}
+details.fnode>summary::-webkit-details-marker{display:none}
+
+/* EQ */
+.eqwrap{direction:ltr;padding:16px 10px 10px;border-radius:24px;margin-top:14px}
+.eq{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;height:210px}
+.eq .band{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;border-radius:16px;padding:6px 0;cursor:pointer;transition:.15s}
+.eq .band.sel{background:var(--card2);box-shadow:inset 3px 3px 6px var(--in-dark),inset -3px -3px 6px var(--in-light)}
+.eq .f{font-size:11.5px;color:var(--muted);font-weight:700}.eq .g{font-size:11.5px;font-family:var(--mono);font-weight:800}
+
+/* monitor */
+.meters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media(max-width:760px){.meters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.meter{padding:14px 16px;border-radius:24px;text-align:center}
+.meter .l{font-size:12.5px;color:var(--muted);font-weight:800}
+.meter .v{font-family:var(--mono);font-size:26px;font-weight:800;direction:ltr;margin:2px 0}
+.meter .d{font-size:11.5px;color:var(--muted);line-height:1.4}
+.levelbar{height:22px;border-radius:99px;position:relative;overflow:hidden;direction:ltr;background:var(--card2);
+  box-shadow:inset 4px 4px 8px var(--in-dark),inset -4px -4px 8px var(--in-light)}
+.levelbar .fill{position:absolute;inset:3px auto 3px 3px;border-radius:99px;background:linear-gradient(90deg,var(--mint) 0%,var(--mint) 65%,var(--sun) 82%,var(--rose) 100%);width:0;transition:width .05s}
+.levelbar .peak{position:absolute;top:2px;bottom:2px;width:3px;border-radius:3px;background:var(--text)}
+.levelbar .floor{position:absolute;top:2px;bottom:2px;width:3px;border-radius:3px;background:var(--sky-d)}
+.scale{display:flex;justify-content:space-between;direction:ltr}
+.screen{background:var(--screen);border-radius:22px;padding:10px;box-shadow:inset 6px 6px 12px rgba(0,0,0,.35),inset -4px -4px 10px rgba(255,255,255,.06)}
+canvas{width:100%;display:block;border-radius:14px}
+.vtabs{display:inline-flex;gap:6px;padding:5px;border-radius:18px}
+.vtabs button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:13px;padding:7px 14px;border-radius:14px;cursor:pointer}
+.vtabs button.active{background:var(--sky);color:#0c2746;box-shadow:3px 3px 7px var(--sh-dark),inset 2px 2px 4px rgba(255,255,255,.45)}
+.ab-pick{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 12px;align-items:center}
+.ab-pick .tag{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-weight:800;color:#0c2746}
+.status{padding:10px 14px;border-radius:16px;background:var(--card2);font-size:13px}
+.status.err{background:#ffd9df;color:#7a1027}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--screen);color:#dcd8ff;border-radius:16px;padding:12px;max-height:340px;overflow:auto;font:12px/1.45 var(--mono);margin:8px 0;direction:ltr;text-align:left}
+details.raw>summary{cursor:pointer;color:var(--muted);margin:6px 0;font-weight:700}
+audio{height:40px;flex:1;min-width:200px;border-radius:99px}
+.toast{position:fixed;bottom:20px;left:20px;padding:12px 18px;border-radius:20px;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none;max-width:440px;font-weight:700;z-index:20}
+.toast.show{opacity:1;transform:none}
+.steps{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.steps li{display:flex;gap:12px;align-items:flex-start;font-size:13.5px}
+.steps .n{flex:none;width:30px;height:30px;border-radius:11px;display:grid;place-items:center;font-weight:800;background:var(--sun);color:#3d2d00;
+  box-shadow:3px 3px 6px var(--sh-dark),inset 2px 2px 4px rgba(255,255,255,.5)}
+.empty{padding:26px;text-align:center;color:var(--muted);border-radius:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="clay">
+  <div class="logo">🎙</div>
+  <div>
+    <h1>لوحة تحكم المايك</h1>
+    <div class="srv" id="srv">بيتصل…</div>
+  </div>
+  <span class="sp"></span>
+  <span class="chip"><span class="dot" id="engDot" style="background:var(--muted)"></span><span id="engineState">المحرك متوقف</span></span>
+  <label class="chk small"><input type="checkbox" class="switch" id="autoRefresh" checked> تحديث تلقائي</label>
+  <button class="btn round" id="themeBtn" title="فاتح / غامق">🌗</button>
+  <button class="btn round" id="refreshBtn" title="تحديث">↻</button>
+</header>
+
+<nav class="tabs clay" id="tabs">
+  <button data-tab="listen" class="active"><span class="ic">🎧</span>اسمع وقارن</button>
+  <button data-tab="mics"><span class="ic">🎚</span>المايكات</button>
+  <button data-tab="filter"><span class="ic">🧠</span>الفلتر الحالي</button>
+  <button data-tab="engine"><span class="ic">🛠</span>مايك نضيف جديد</button>
+  <button data-tab="more"><span class="ic">⚙️</span>متقدم</button>
+</nav>
+
+<!-- =============== TAB: listen =============== -->
+<section class="panel show" id="tab-listen">
+  <div class="grid" style="grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start">
+    <div class="card clay">
+      <h2><span class="emo bg-sky">🎧</span>اسمع وقارن</h2>
+      <p class="lead">اختار مايكين وبدّل بينهم في لحظة عشان تسمع الفرق. من الكيبورد: <b>A</b> أو <b>B</b> أو <b>Space</b>.</p>
+      <div class="ab-pick">
+        <span class="tag bg-sky">A</span><select id="devA"></select>
+        <span class="tag bg-peach">B</span><select id="devB"></select>
+      </div>
+      <div class="row" style="margin-top:18px">
+        <button class="btn primary big" id="micBtn">▶ ابدأ الاستماع</button>
+        <div class="vtabs pressed"><button id="abA" class="active">A</button><button id="abB">B</button></div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <label class="chk"><input type="checkbox" class="switch" id="monitorOn"> اسمع نفسي 🎧</label>
+        <span class="sp"></span>
+        <span class="small muted">علو السماعة</span><input type="range" id="monVol" min="0" max="2" step="0.05" value="1" style="width:130px">
+      </div>
+      <div class="help" style="margin-top:12px">صوت المايك هيطلع في السماعة عشان تسمع التغيير وانت بتظبط. <b>لازم هيدفون</b>، وإلا هيحصل صفير. علو السماعة بيأثر عليك انت بس، مش على المايك.</div>
+      <details class="hint"><summary>⚙️ معالجة البراوزر (خليها مقفولة)</summary>
+        <div class="row small" style="margin-top:10px">
+          <label class="chk"><input type="checkbox" class="switch" id="bNS"> عزل ضوضاء</label>
+          <label class="chk"><input type="checkbox" class="switch" id="bEC"> إلغاء صدى</label>
+          <label class="chk"><input type="checkbox" class="switch" id="bAGC"> تحكم تلقائي</label>
+        </div>
+        <div class="help">دي فلاتر جوه كروم نفسه. <b>خليها مقفولة</b> عشان تسمع الصوت الحقيقي اللي البرامج التانية بتاخده من المايك.</div>
+      </details>
+    </div>
+
+    <div class="card clay">
+      <h2><span class="emo bg-sun">📋</span>تظبط منين؟</h2>
+      <ol class="steps" style="margin-top:14px">
+        <li><span class="n">1</span><span>خلي A = المايك الخام (USB) و B = Mic (clean)، ودوس <b>ابدأ الاستماع</b>.</span></li>
+        <li><span class="n">2</span><span>اتكلم عادي وظبط <b>جين المايك الـ USB</b> من تاب «المايكات» لحد ما القمة (Peak) تبقى بين <span class="ltr">−12</span> و <span class="ltr">−6</span>.</span></li>
+        <li><span class="n">3</span><span>اسكت 5 ثواني وقارن <b>مستوى الضوضاء</b> بين A و B.</span></li>
+        <li><span class="n">4</span><span>من تاب «الفلتر الحالي» علّي <b>قوة البوابة</b> لحد ما السكوت يبقى أسود في الـ spectrogram.</span></li>
+        <li><span class="n">5</span><span>سجّل 10 ثواني واسمع صوتك زي ما الناس هتسمعه.</span></li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="meters" style="margin-top:22px">
+    <div class="meter clay"><div class="l">أعلى قمة (Peak)</div><div class="v" id="mPeak">–</div><div class="d">فوق <span class="ltr">−1</span> = الصوت بيتكسر</div></div>
+    <div class="meter clay"><div class="l">العلو (RMS)</div><div class="v" id="mRms">–</div><div class="d">زي ما ودنك بتحس بيه</div></div>
+    <div class="meter clay"><div class="l">الضوضاء</div><div class="v" id="mFloor">–</div><div class="d">وانت ساكت. أوطى = أنضف</div></div>
+    <div class="meter clay"><div class="l">الكلام / النقاء</div><div class="v" id="mSnr">–</div><div class="d">الفرق بين كلامك والضوضاء</div></div>
+  </div>
+
+  <div class="card clay" style="margin-top:22px">
+    <div class="now" id="levelNow" style="margin-top:0">ابدأ الاستماع عشان تظهر القراءات.</div>
+    <div style="height:14px"></div>
+    <div class="levelbar"><div class="fill" id="lvFill"></div><div class="floor" id="lvFloor"></div><div class="peak" id="lvPeak"></div></div>
+    <div class="scale small muted" style="margin:4px 4px 0"><span>-60 dB</span><span>-30</span><span>-18</span><span>-6</span><span>0</span></div>
+    <div class="small muted" style="margin-top:2px">الشريط = العلو دلوقتي · الخط الغامق = أعلى قمة · الخط الأزرق = الضوضاء</div>
+
+    <div class="row" style="margin:18px 0 12px">
+      <div class="vtabs pressed" id="viz">
+        <button data-v="spec" class="active">الترددات</button>
+        <button data-v="sgram">الـ Spectrogram</button>
+        <button data-v="wave">الموجة</button>
+      </div>
+      <span class="sp"></span>
+      <label class="chk small"><input type="checkbox" class="switch" id="freeze"> تجميد</label>
+      <span class="small muted ltr" id="ctxInfo"></span>
+    </div>
+    <div class="screen" data-vp="spec"><canvas id="spec" height="220"></canvas></div>
+    <div class="screen" data-vp="sgram" style="display:none"><canvas id="sgram" height="220"></canvas></div>
+    <div class="screen" data-vp="wave" style="display:none"><canvas id="wave" height="220"></canvas></div>
+    <div class="small muted" id="vizHelp" style="margin-top:8px"></div>
+
+    <div class="row" style="margin-top:18px">
+      <button class="btn mint" id="recBtn">⏺ سجّل 10 ثواني</button>
+      <audio id="player" controls></audio>
+      <a id="dl" class="small" style="display:none;color:var(--sky-d);font-weight:800">⬇ تحميل</a>
+    </div>
+  </div>
+</section>
+
+<!-- =============== TAB: mics =============== -->
+<section class="panel" id="tab-mics">
+  <div class="card clay">
+    <h2><span class="emo bg-mint">🔗</span>الصوت جاي منين؟</h2>
+    <p class="lead">المايك الحقيقي (أخضر) ← الفلتر (برتقالي) ← المصدر اللي البرامج بتسجل منه (بنفسجي). ★ = المدخل الافتراضي.</p>
+    <div id="chains"><span class="muted">بيحمّل…</span></div>
+  </div>
+
+  <div class="row" style="margin:26px 4px 14px">
+    <h2 style="margin:0;font-size:17px">🎚 المايكات</h2><span class="sp"></span>
+    <label class="chk small"><input type="checkbox" class="switch" id="showMonitors"> اعرض مراقبة الخرج</label>
+  </div>
+  <div id="sources"></div>
+  <details class="hint" style="margin-top:18px"><summary>ⓘ الجين بيعمل إيه؟</summary>
+    <div class="help">
+      <b>الجين</b> بيكبّر أو بيصغّر الإشارة كلها، الكلام والضوضاء مع بعض.<br>
+      <span class="up">▲ لو علّيته:</span> صوتك يعلى والضوضاء كمان. وفوق 100% ده تكبير رقمي بيعلّي الضوضاء، ولو زاد أوي بيحصل تكسير (clipping).<br>
+      <span class="down">▼ لو وطّيته:</span> الصوت يوطى، والناس ممكن متسمعكش كويس.<br>
+      <b>القاعدة:</b> ظبط جين المايك الحقيقي (USB) الأول، وسيب Mic (clean) على 100%.
+    </div>
+  </details>
+</section>
+
+<!-- =============== TAB: filter =============== -->
+<section class="panel" id="tab-filter">
+  <div class="card clay" style="margin-bottom:22px">
+    <h2><span class="emo bg-peach">🧠</span>الفلتر الشغال دلوقتي <span class="sp"></span><span class="chip" id="filterCount"></span></h2>
+    <p class="lead" style="margin-bottom:0">دي إعدادات Mic (clean) الشغال عندك. التغيير بيتطبق <b>فورًا</b>، بس بيرجع لقيمته القديمة بعد الـ restart. عشان تثبّته، عدّل ملف الـ config اللي في تاب «متقدم».</p>
+  </div>
+  <div id="filters"><span class="muted">بيحمّل…</span></div>
+</section>
+
+<!-- =============== TAB: engine =============== -->
+<section class="panel" id="tab-engine">
+
+  <!-- ===== Old mic takeover (dashboard owns the mic) ===== -->
+  <section class="card clay" id="legacyCard" style="margin-bottom:22px">
+    <h2><span class="emo bg-rose">🧹</span>المايك القديم <span class="sp"></span><span class="badge b-unknown" id="lgBadge">بيدوّر…</span></h2>
+    <p class="lead">هنا بتظهر أي حاجة بتعمل مايك نضيف <b>من برا الداشبورد</b>، زي «Mic (clean)» القديم: ملفات config أو خدمات أو برامج بتشتغل مع الجهاز. اقفلهم عشان الداشبورد تبقى هي الوحيدة اللي بتتحكم في المايك، وانت اللي تشغّله وتظبطه وقت ما تحب.</p>
+    <div id="lgList" class="small muted">بيدوّر…</div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn danger" id="lgAll">🧹 اقفل كل القديم</button>
+      <button class="btn" id="lgRefresh">↻ دوّر تاني</button>
+      <span class="sp"></span>
+      <label class="chk small"><input type="checkbox" class="switch" id="lgAuto"> شغّل Mic (Mohamed) لوحده أول ما السيرفر يقوم</label>
+    </div>
+    <div class="help" style="margin-top:12px">
+      <b>بيحصل إيه لما تقفله؟</b> مفيش حاجة بتتمسح. ملف الـ config بيتغير اسمه لـ <span class="mono">….mic-dashboard-off</span> عشان PipeWire يتجاهله، والخدمة بتتعمل <span class="mono">disable</span>، والبرنامج بيتقفل. بعدها PipeWire بيعمل restart، والصوت بيقطع ثانية أو اتنين. زرار <b>رجّعه</b> بيرجّع كل حاجة زي ما كانت.<br>
+      <b>بعد ما تقفله:</b> روح تحت واختار المايك الـ USB في «بياخد الصوت من»، ودوس <b>شغّل</b>. هيظهر مايك جديد اسمه <b>Mic (Mohamed)</b>، وده اللي هتختاره في زوم وديسكورد والبراوزر. ولو علّمت على «شغّله لوحده»، هيقوم مع السيرفر كل مرة.
+    </div>
+  </section>
+
+  <div class="card clay">
+    <h2><span class="emo bg-lilac">🛠</span>اعمل مايك نضيف جديد (Mic (Mohamed))</h2>
+    <p class="lead">مايك وهمي جديد الصوت فيه بيعدي على: قص الترددات الواطية ← عزل ضوضاء RNNoise (مرة أو مرتين) ← EQ ← ضاغط ← تعلية. ده اللي هيحل محل Mic (clean) القديم، ولما تقفل السيرفر بيتشال لوحده.</p>
+    <div class="grid g2">
+      <div><div class="small muted" style="font-weight:800;margin-bottom:6px">المحرك</div>
+        <select id="engine" style="width:100%">
+          <option value="pipewire">RNNoise + EQ (أقوى)</option>
+          <option value="webrtc">WebRTC (أبسط وأخف)</option>
+        </select></div>
+      <div><div class="small muted" style="font-weight:800;margin-bottom:6px">بياخد الصوت من</div>
+        <select id="master" style="width:100%"></select></div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <label class="chk"><input type="checkbox" class="switch" id="makeDefault"> خليه المدخل الافتراضي</label>
+      <span class="sp"></span>
+      <button class="btn primary" id="startBtn">▶ شغّل</button>
+      <button class="btn danger" id="stopBtn">■ وقّف</button>
+      <button class="btn" id="resetBtn">↺ الأصلي</button>
+    </div>
+    <div class="small muted" id="applyInfo" style="margin-top:8px"></div>
+    <div id="engineMsg" style="margin-top:8px"></div>
+    <details class="hint"><summary>ⓘ أختار إيه؟</summary><div class="help"><b>RNNoise</b> ذكاء اصطناعي بيفرق بين الكلام والضوضاء، فعزله أقوى بكتير وفيه EQ. <b>WebRTC</b> أخف، زي بتاع جوجل ميت.<br>
+      <b>بياخد الصوت من:</b> اختار المايك الحقيقي (USB)، مش Mic (clean)، وإلا الصوت هيتفلتر مرتين ويبقى "روبوتي".<br>
+      <b>المدخل الافتراضي:</b> البرامج كلها هتسجل منه لوحدها، ولما توقفه بيرجّع المايك الأصلي.</div></details>
+  </div>
+
+  <div id="pwControls" style="margin-top:22px">
+    <div class="field clay" style="margin-bottom:22px">
+      <div class="lbl"><label class="chk"><input type="checkbox" class="switch" id="rnnoise"> عزل الضوضاء بالذكاء الاصطناعي (RNNoise)</label></div>
+      <div class="small muted" id="rnnoiseInfo"></div>
+      <details class="hint"><summary>ⓘ اشرحلي</summary><div class="help">بيشيل أي صوت مش كلام، زي المروحة والتكييف والكيبورد والهسهسة.<br>
+        <span class="up">✔ شغال:</span> ضوضاء أقل بكتير، بس الصوت ممكن يتسمع "مضغوط" شوية.<br>
+        <span class="down">✘ مقفول:</span> الصوت طبيعي بكل الضوضاء اللي حواليك.</div></details>
+    </div>
+
+    <div class="grid g2">
+      <div class="field clay"><div class="lbl"><span>قوة البوابة (VAD)</span><span class="val" id="vadV"></span></div>
+        <input type="range" id="vadThreshold" min="0" max="99" step="1">
+        <div class="now" id="vadNow"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">نسبة الثقة اللي لازم الصوت يوصلها عشان يتعامل على إنه كلام، وأي حاجة تحتها بتتكتم.<br>
+        <span class="up">▲ علّيها:</span> السكوت يبقى صامت تمامًا، بس الكلام الواطي وأول الكلمات ممكن يتقطعوا.<br>
+        <span class="down">▼ وطّيها:</span> مفيش تقطيع، بس فيه ضوضاء خفيفة في السكوت.</div></details></div>
+
+      <div class="field clay"><div class="lbl"><span>السماح بعد الكلام (Grace)</span><span class="val" id="graceV"></span></div>
+        <input type="range" id="vadGrace" min="0" max="1000" step="10">
+        <div class="now" id="graceNow"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">البوابة بتفضل مفتوحة المدة دي بعد ما تسكت.<br>
+        <span class="up">▲ علّيها:</span> آخر الكلمات بيطلع طبيعي، بس الضوضاء بتفضل شوية بعد الكلام.<br>
+        <span class="down">▼ وطّيها:</span> الكتم أسرع، بس آخر حرف ممكن يتاكل.</div></details></div>
+
+      <div class="field clay"><div class="lbl"><span>السماح قبل الكلام (Retroactive)</span><span class="val" id="retroV"></span></div>
+        <input type="range" id="retroGrace" min="0" max="200" step="10">
+        <div class="now" id="retroNow"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">بيأخّر الصوت شوية عشان يلحق أول الكلمة.<br>
+        <span class="up">▲ علّيها:</span> أول حرف مش بيتقطع، بس صوتك بيتأخر في المكالمات.<br>
+        <span class="down">▼ وطّيها (0):</span> مفيش تأخير، بس أول حرف ممكن يتقطع.</div></details></div>
+
+      <div class="field clay"><div class="lbl"><span>قص الترددات الواطية (High-pass)</span><span class="val" id="hpV"></span></div>
+        <input type="range" id="highpass" min="0" max="300" step="5">
+        <div class="now" id="hpNow"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">بيشيل كل الصوت اللي تحت التردد ده، زي الزن وخبط الترابيزة والتكييف.<br>
+        <span class="up">▲ علّيه:</span> الصوت أنضف وأخف، بس فوق 150Hz هيبان رفيع.<br>
+        <span class="down">▼ وطّيه (0 = مقفول):</span> العمق بيفضل، بس الزن بيعدي.</div></details></div>
+
+      <div class="field clay"><div class="lbl"><span>التعلية النهائية</span><span class="val" id="ogV"></span></div>
+        <input type="range" id="outputGainDb" min="-12" max="24" step="0.5">
+        <div class="now" id="ogNow"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">تعلية بعد كل الفلاتر، وكل <span class="ltr">+6 dB</span> بتضاعف الإشارة تقريبًا.<br>
+        <span class="up">▲ علّيها:</span> الصوت أعلى، ولو زادت أوي هيتكسر.<br>
+        <span class="down">▼ وطّيها:</span> الصوت أوطى.<br><b>الأحسن:</b> علّي جين المايك الحقيقي الأول.</div></details></div>
+    </div>
+
+    <div class="card clay" style="margin-top:22px">
+      <h2><span class="emo bg-sun">🎛</span>المعادل (EQ) <span class="sp"></span>
+        <select id="eqPreset">
+          <option value="">قوالب جاهزة…</option><option value="flat">مسطح</option><option value="voice">وضوح الكلام</option>
+          <option value="warm">دافي / راديو</option><option value="deess">تخفيف الحدة</option><option value="laptop">إصلاح مايك رخيص</option>
+        </select></h2>
+      <p class="lead">الترددات الواطية ناحية الشمال والعالية ناحية اليمين. دوس على أي عمود وهيقولك بيأثر على إيه. <b>نصيحة:</b> التوطية أحسن من التعلية.</p>
+      <div class="eqwrap pressed"><div class="eq" id="eq"></div></div>
+      <div class="now" id="eqNow">دوس على أي عمود عشان تعرف بيأثر على إيه.</div>
+    </div>
+  </div>
+
+  <div id="webrtcControls" style="display:none;margin-top:22px">
+    <div class="grid g3">
+      <div class="field clay"><label class="chk"><input type="checkbox" class="switch" id="w_ns"> عزل الضوضاء</label>
+        <div class="help">بيشيل الضوضاء الثابتة زي المروحة والتكييف. <span class="up">✔</span> أنضف، بس أضعف من RNNoise في الكيبورد والخبط.</div></div>
+      <div class="field clay"><label class="chk"><input type="checkbox" class="switch" id="w_agc"> تحكم تلقائي في العلو</label>
+        <div class="help">بيعلّي صوتك لو بعدت عن المايك. <span class="up">✔</span> علو ثابت، بس بيعلّي الضوضاء وانت ساكت. <b>الأحسن تقفله.</b></div></div>
+      <div class="field clay"><label class="chk"><input type="checkbox" class="switch" id="w_hp"> قص الترددات الواطية</label>
+        <div class="help">بيشيل الزن والهمهمة. <span class="up">✔</span> يُفضّل يفضل شغال.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============== TAB: more =============== -->
+<section class="panel" id="tab-more">
+  <div class="grid g2" style="align-items:start">
+    <div class="card clay">
+      <h2><span class="emo bg-mint">📄</span>ملفات إعدادات الفلاتر</h2>
+      <p class="lead">عشان تثبّت قيمة جربتها، عدّل الرقم اللي جوه <span class="mono">control = { … }</span> في الملف، وبعدين نفّذ <span class="mono">systemctl --user restart pipewire</span>.</p>
+      <div id="configs"><span class="muted">بيحمّل…</span></div>
+    </div>
+    <div class="card clay">
+      <h2><span class="emo bg-rose">🩺</span>تشخيص</h2>
+      <p class="lead">مخرجات أوامر النظام زي ما هي. ابعتها لو حاجة مش شغالة.</p>
+      <button class="btn" id="rawBtn">اعرض مخرجات pactl / wpctl / ALSA</button>
+      <div id="raw"></div>
+      <details class="raw" style="margin-top:12px"><summary>سجل المحرك</summary><pre id="engineLog">—</pre></details>
+    </div>
+  </div>
+</section>
+
+</div>
+<div class="toast clay" id="toast"></div>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const toast = (msg, ms = 2500) => { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms); };
+const api = async (path, body) => {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+  const j = await r.json().catch(() => ({ ok: false, error: 'رد غلط من السيرفر' }));
+  if (j.ok === false && j.error) toast('⚠ ' + j.error, 5000);
+  return j;
+};
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const setNow = (el, text, level = '') => { el.innerHTML = text; el.className = 'now' + (level ? ' ' + level : ''); };
+const L = (s) => `<span class="ltr">${s}</span>`;
+
+let STATUS = null, SETTINGS = null, EQF = [], interacting = false;
+const STATE_AR = { RUNNING: 'شغال دلوقتي', IDLE: 'جاهز', SUSPENDED: 'نايم (محدش بيسجل منه)' };
+
+// ------------------------------------------------------------ live value descriptions (engine)
+const describe = {
+  vad: (v) => v === 0 ? ['مقفولة: RNNoise بيقلل الضوضاء بس، ومش بيكتم السكوت خالص.', ''] :
+    v <= 30 ? ['خفيفة: مفيش تقطيع للكلام تقريبًا، بس فيه ضوضاء خفيفة بين الكلام.', 'good'] :
+    v <= 70 ? ['متوسطة (الموصى بيها): توازن كويس بين السكوت الصامت والكلام الطبيعي.', 'good'] :
+    v <= 90 ? ['قوية: السكوت صامت تمامًا، بس خد بالك من أول الكلمات والكلام الواطي.', 'warn'] :
+    ['قوية جدًا: غالبًا هتقطع كلام. علّي الـ Grace أو وطّيها.', 'bad'],
+  grace: (v) => v < 100 ? ['سريع جدًا: آخر الكلمات ممكن تتاكل والصوت يبان متقطع.', 'warn'] :
+    v <= 400 ? ['طبيعي: آخر الكلام بيطلع كويس.', 'good'] :
+    ['طويل: هتسمع ضوضاء بتفضل شوية بعد ما تسكت.', 'warn'],
+  retro: (v) => v === 0 ? ['مقفول: مفيش تأخير زيادة.', 'good'] :
+    v <= 50 ? [`بيضيف تأخير ${L(v + ' ms')}، ومش هتحس بيه تقريبًا.`, 'good'] :
+    [`بيضيف تأخير ${L(v + ' ms')} في صوتك، وممكن يتلاحظ في المكالمات.`, 'warn'],
+  hp: (v) => v === 0 ? ['مقفول: كل الترددات الواطية بتعدي، بما فيها الزن والخبط.', ''] :
+    v < 60 ? ['خفيف: بيشيل الاهتزازات والخبط بس.', 'good'] :
+    v <= 120 ? ['موصى بيه للكلام: بيشيل الزن والتكييف ومحافظ على عمق صوتك.', 'good'] :
+    v <= 180 ? ['قوي: صوتك هيخف شوية ويبان أرفع.', 'warn'] :
+    ['قوي جدًا: صوتك هيبان رفيع زي التليفون.', 'bad'],
+  og: (v) => v === 0 ? ['من غير تغيير.', ''] :
+    v < 0 ? [`بيوطّي الصوت ${L(v + ' dB')} (تقريبًا ×${Math.pow(10, v / 20).toFixed(2)}).`, ''] :
+    v <= 9 ? [`بيعلّي الصوت ${L('+' + v + ' dB')} (تقريبًا ×${Math.pow(10, v / 20).toFixed(1)}). راقب الـ Peak.`, 'good'] :
+    [`تعلية كبيرة ${L('+' + v + ' dB')}: غالبًا هيحصل تكسير. الأحسن تعلّي جين المايك نفسه.`, 'bad'],
+};
+const EQ_INFO = {
+  31: ['الزن والرعشة (Sub-bass)', 'اهتزاز الترابيزة وصوت العربيات من بعيد. الكلام تقريبًا مفيهوش حاجة هنا.', 'مفيش فايدة تقريبًا، هتعلّي الزن بس.', 'بينضّف الصوت من الاهتزازات من غير ما يأثر على صوتك.'],
+  63: ['الهمهمة (Hum)', 'زن الكهربا (50Hz) والتكييف والمروحة، والعمق التقيل في الأصوات التخينة.', 'صوت "تقيل" و"بومبة"، والزن يعلى.', 'بيشيل زن الكهربا والتكييف. غالبًا وطّيه.'],
+  125: ['العمق (Body)', 'التُّخن والدفا بتوع الصوت الرجالي.', 'صوت أدفى وأتخن، بس لو زاد يبقى "مكتوم".', 'صوت أخف وأرفع.'],
+  250: ['الكتمة (Boxy/Muddy)', 'المنطقة اللي بتخلي الصوت "جوه علبة" أو "من ورا باب".', 'الصوت يبقى مكتوم وغير واضح.', 'الصوت يبقى أنضف وأوضح. المايكات الرخيصة غالبًا محتاجة توطية هنا.'],
+  500: ['الصوت الأنفي (Honky)', 'الرنين الأنفي، والصوت اللي زي "التليفون القديم".', 'صوت أنفي ورخيص.', 'بيقلل الرنين الأنفي، وتوطية بسيطة بتخلي الصوت أنعم.'],
+  1000: ['الحضور الأساسي', 'جسم الحروف ووضوح الكلام.', 'صوتك "قدام" أكتر، بس لو زاد يبقى مزعج.', 'صوتك يبعد ويبقى أضعف.'],
+  2000: ['وضوح الحروف (Presence)', 'أهم منطقة إن الناس "تفهم" كلامك: الحروف الساكنة.', 'كلام أوضح ومفهوم أكتر في المكالمات.', 'كلام أنعم بس أقل وضوحًا.'],
+  4000: ['الحدة (Bite)', 'حدة الصوت، وبداية منطقة السين والشين.', 'وضوح زيادة، بس لو كتير الصوت يبقى حاد ومتعب للودن.', 'بيهدّي الحدة ويخلي الصوت مريح.'],
+  8000: ['السين والشين (Sibilance)', 'صوت "سسس" و"شششش"، والهسهسة بتاعة المايك.', 'تفاصيل أكتر، بس السين بتصفّر والهسهسة تعلى.', 'بيخفف تصفير السين والهسهسة.'],
+  16000: ['الهوا (Air)', 'اللمعة والإحساس بـ"الفضا"، وهنا بيقعد أغلب الهسهسة الإلكترونية.', 'لمعة، بس الهسهسة بتعلى جامد في المايكات الرخيصة.', 'بيشيل الهسهسة، والكلام نفسه تقريبًا مش بيتأثر.'],
+};
+const fmtHz = (f) => f >= 1000 ? f / 1000 + 'k' : f;
+function describeBand(i) {
+  const b = SETTINGS.eq[i], info = EQ_INFO[b.freq] || ['', '', '', ''];
+  const g = Number(b.gain);
+  const eff = g === 0 ? 'مش متغير دلوقتي.' : g > 0 ? `▲ متعلّي ${L('+' + g + ' dB')}: ${info[2]}` : `▼ متوطّي ${L(g + ' dB')}: ${info[3]}`;
+  setNow($('eqNow'), `<b>${L(fmtHz(b.freq) + 'Hz')} · ${info[0]}</b>: ${info[1]}<br>${eff}${Math.abs(g) > 8 ? '<br>⚠ تغيير كبير. أكتر من ±8 dB غالبًا بيبوّظ طبيعية الصوت.' : ''}`, g === 0 ? '' : Math.abs(g) > 8 ? 'warn' : 'good');
+  document.querySelectorAll('.eq .band').forEach((el, j) => el.classList.toggle('sel', j === i));
+}
+
+// ------------------------------------------------------------ existing filter param help
+function paramHelp(key, value) {
+  const k = key.toLowerCase(), v = Number(value);
+  const node = key.includes(':') ? key.split(':')[0] : '';
+  if (/vad threshold/.test(k)) { const [d, lv] = describe.vad(v); return { title: 'قوة البوابة (VAD Threshold)', what: 'نسبة الثقة اللي لازم الصوت يوصلها عشان يتعامل على إنه كلام. أي حاجة تحتها بتتكتم.', up: 'السكوت يبقى صامت تمامًا، بس الكلام الواطي وأول الكلمات ممكن يتقطعوا.', down: 'مفيش تقطيع، بس فيه ضوضاء خفيفة في السكوت.', now: d, lv }; }
+  if (/retroactive/.test(k)) { const [d, lv] = describe.retro(v); return { title: 'سماح قبل الكلام (Retroactive Grace)', what: 'بيأخّر الصوت شوية عشان يلحق أول الكلمة قبل ما البوابة تفتح.', up: 'أول حرف مش بيتقطع، بس صوتك بيتأخر بنفس المدة.', down: 'مفيش تأخير، بس أول حرف ممكن يتقطع.', now: d, lv }; }
+  if (/grace/.test(k)) { const [d, lv] = describe.grace(v); return { title: 'مدة السماح بعد الكلام (Grace Period)', what: 'البوابة بتفضل مفتوحة المدة دي بعد ما تسكت.', up: 'آخر الكلمات بيطلع طبيعي، بس الضوضاء بتفضل شوية بعد الكلام.', down: 'الكتم بيحصل أسرع، بس آخر الحرف ممكن يتاكل.', now: d, lv }; }
+  if (/:freq$|^freq$/.test(k)) return { title: `تردد الفلتر ${node}`, what: 'مركز منطقة الترددات اللي الفلتر ده بيأثر عليها.', up: 'الفلتر يروح للصوت الأعلى والأحدّ (سين، هوا).', down: 'الفلتر يروح للصوت الأوطى والأتخن (عمق، زن).', now: `بيأثر حوالين ${L(Math.round(v) + ' Hz')}.`, lv: '' };
+  if (/:q$|^q$/.test(k)) return { title: `عرض الفلتر ${node} (Q)`, what: 'بيحدد الفلتر بيأثر على منطقة عريضة ولا ضيقة حوالين التردد.', up: 'منطقة ضيقة ودقيقة، مفيدة عشان تشيل صفير أو زن معيّن.', down: 'منطقة عريضة وتأثير ناعم وطبيعي.', now: v < 0.8 ? 'عريض (تأثير ناعم).' : v <= 2 ? 'متوسط (مناسب للكلام).' : 'ضيق (جراحي).', lv: '' };
+  if (/gain \d/.test(k)) return { title: `تعلية الخرج ${node}`, what: 'مضاعف للصوت: 1 = من غير تغيير، و 2 = ضعف الإشارة (+6 dB).', up: 'صوت أعلى، وممكن يحصل تكسير.', down: 'صوت أوطى.', now: v > 0 ? `حوالي ${L((20 * Math.log10(v)).toFixed(1) + ' dB')}` : 'صامت', lv: v > 2.5 ? 'warn' : '' };
+  if (/:gain$|^gain$/.test(k)) return { title: `تعلية/توطية ${node} (EQ)`, what: 'قد إيه المنطقة دي بتتعلّى أو بتتوطّى.', up: 'المنطقة دي تبقى أوضح وأعلى.', down: 'المنطقة دي تتشال أو تهدى.', now: v === 0 ? 'من غير تغيير.' : `${v > 0 ? 'متعلّي' : 'متوطّي'} ${L((v > 0 ? '+' : '') + v + ' dB')}`, lv: Math.abs(v) > 8 ? 'warn' : '' };
+  if (/volume/.test(k)) return { title: 'علو صوت الفلتر', what: 'مستوى الصوت الداخلي للفلتر (1 = 100%).', up: 'أعلى.', down: 'أوطى.', now: `${Math.round(v * 100)}%`, lv: '' };
+  if (/mute/.test(k)) return { title: 'كتم', what: 'بيكتم الفلتر كله.', up: '', down: '', now: value ? 'مكتوم' : 'شغال', lv: value ? 'bad' : '' };
+  return { title: key, what: 'إعداد خاص بالفلتر ده. جرّب تغيّره وانت سامع الفرق من المراقبة المباشرة.', up: '', down: '', now: '', lv: '' };
+}
+
+// ------------------------------------------------------------ status
+async function refresh() {
+  if (interacting) return;
+  const [st, gr] = await Promise.all([api('/api/status'), api('/api/graph')]);
+  STATUS = st;
+  if (!st.ok) { $('srv').textContent = 'مفيش sound server'; $('sources').innerHTML = `<div class="status err">${esc(st.error)}</div>`; return; }
+  $('srv').innerHTML = `${esc(st.server.name)} · المدخل الافتراضي: <span class="mono">${esc(st.server.defaultSource)}</span>`;
+  if (!SETTINGS) { SETTINGS = st.settings; EQF = st.eqFreqs; renderEngine(); }
+  renderSources(st);
+  renderChains(gr, st);
+  renderFilters(gr);
+  renderEngineState(st.clean);
+  fillMaster(st);
+}
+
+function originBadge(o) { return `<span class="badge b-${o.kind}">${esc(o.label)}</span>`; }
+function gainNow(v) {
+  if (v === 0) return ['صامت تمامًا.', 'bad'];
+  if (v < 40) return ['واطي جدًا: الناس ممكن متسمعكش كويس.', 'warn'];
+  if (v <= 100) return ['طبيعي: تكبير من المايك نفسه من غير تكبير رقمي.', 'good'];
+  if (v <= 120) return ['فوق 100%: تكبير رقمي بسيط، والضوضاء بتعلى معاه.', 'warn'];
+  return ['تكبير رقمي كبير: الضوضاء بتعلى وممكن يحصل تكسير.', 'bad'];
+}
+function renderSources(st) {
+  const show = $('showMonitors').checked;
+  const list = st.sources.filter((s) => show || s.origin.kind !== 'monitor');
+  $('sources').innerHTML = list.map((s) => {
+    const [gn, gl] = gainNow(s.volumePercent ?? 100);
+    const role = s.origin.kind === 'hardware' ? 'ده المايك الحقيقي. جينه هو أهم إعداد، ظبطه الأول.' : s.origin.kind === 'filter' ? 'ده مايك متفلتر. سيب جينه على 100% واتحكم في الجين من المايك الحقيقي.' : '';
+    return `
+    <div class="src">
+      <div class="name">${s.isDefault ? '<span class="star">★</span> ' : ''}${esc(s.description)}</div>
+      <div class="row small" style="margin-top:6px">${originBadge(s.origin)}<span class="muted">${esc(STATE_AR[s.state] || s.state)}</span></div>
+      ${role ? `<div class="small" style="margin-top:8px">💡 ${role}</div>` : ''}
+      ${s.recordedBy.length ? `<div class="small" style="margin-top:4px">🔴 بيسجل منه دلوقتي: ${s.recordedBy.map((r) => esc(r.app)).join('، ')}</div>` : ''}
+      <div class="gainrow"><span>الجين</span><span class="ltr small muted" data-volv="${esc(s.name)}">${s.volumePercent ?? '?'}% · ${esc(s.volumeDb ?? '')} dB</span></div>
+      <input type="range" min="0" max="150" step="1" value="${s.volumePercent ?? 100}" data-vol="${esc(s.name)}">
+      <div class="now ${gl}" data-voln="${esc(s.name)}">${gn}</div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ${s.mute ? 'danger' : ''}" data-mute="${esc(s.name)}" data-m="${s.mute ? 0 : 1}" title="كتم المايك ده: البرامج هتاخد سكوت">${s.mute ? '🔇 مكتوم' : '🔈 كتم'}</button>
+        <button class="btn ${s.isDefault ? 'on' : ''}" data-def="${esc(s.name)}" ${s.isDefault ? 'disabled' : ''} title="كل البرامج هتسجل من المايك ده بشكل افتراضي">${s.isDefault ? '★ الافتراضي' : 'خليه افتراضي'}</button>
+      </div>
+      <details class="raw"><summary class="small">تفاصيل تقنية</summary><div class="small muted mono">${esc(s.name)}<br>${esc(s.sampleSpec)}</div>${s.origin.detail ? `<div class="small muted">${esc(s.origin.detail)}</div>` : ''}</details>
+    </div>`;
+  }).join('') || '<div class="empty clay">مفيش مايكات.</div>';
+}
+const setVol = debounce((name, v) => api('/api/source/volume', { name, percent: v }), 80);
+$('sources').addEventListener('input', (e) => {
+  const n = e.target.dataset.vol; if (!n) return;
+  interacting = true; clearTimeout(window._ih); window._ih = setTimeout(() => (interacting = false), 1200);
+  const v = Number(e.target.value);
+  const db = v === 0 ? '-inf' : (60 * Math.log10(v / 100)).toFixed(1);
+  document.querySelector(`[data-volv="${CSS.escape(n)}"]`).textContent = `${v}% · ${db} dB`;
+  const [gn, gl] = gainNow(v); setNow(document.querySelector(`[data-voln="${CSS.escape(n)}"]`), gn, gl);
+  setVol(n, v);
+});
+$('sources').addEventListener('click', async (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.mute) await api('/api/source/mute', { name: b.dataset.mute, mute: b.dataset.m === '1' });
+  if (b.dataset.def) { await api('/api/source/default', { name: b.dataset.def }); toast('اتغيّر المدخل الافتراضي'); }
+  refresh();
+});
+$('showMonitors').onchange = () => STATUS && renderSources(STATUS);
+
+function renderChains(gr, st) {
+  if (!gr.ok) {
+    $('chains').innerHTML = `<div class="status">${esc(gr.error)}</div>` + st.sources.filter((s) => s.origin.kind !== 'monitor').map((s) =>
+      `<div class="chain">${s.origin.master ? `<div class="node hw"><div class="t mono">${esc(s.origin.master)}</div></div><span class="arrow">←</span>` : ''}<div class="node ${s.origin.kind === 'filter' ? 'flt' : 'hw'}"><div class="t">${s.isDefault ? '★ ' : ''}${esc(s.description)}</div><div class="s">${esc(s.origin.label)}</div></div></div>`).join('');
+    return;
+  }
+  const def = st.server.defaultSource;
+  const all = gr.chains.filter((c) => !/monitor/i.test(c.name || ''));
+  const inLonger = new Set(all.filter((c) => c.chain.length > 1).flatMap((c) => c.chain.slice(1).map((n) => n.id)));
+  const chains = all.filter((c) => c.chain.length > 1 || !inLonger.has(c.id) || c.name === def);
+  chains.sort((a, b) => (b.name === def) - (a.name === def) || b.chain.length - a.chain.length);
+  $('chains').innerHTML = (gr.note ? `<div class="status small" style="margin-bottom:12px">ℹ️ ${esc(gr.note)}</div>` : '') + chains.map((c) => {
+    const steps = [...c.chain].reverse();
+    return `<div class="chain">${steps.map((n, i) => {
+      const last = i === steps.length - 1;
+      const cls = n.api ? 'hw' : last ? 'src' : 'flt';
+      const kind = n.api ? `🎤 مايك حقيقي${n.product ? ' · ' + n.product : ''}` : last ? '📥 البرامج بتسجل من هنا' : '🧠 فلتر معالجة';
+      return `${i ? '<span class="arrow">←</span>' : ''}<div class="node ${cls}"><div class="t">${last && c.name === def ? '<span class="star">★</span> ' : ''}${esc(n.label)}</div><div class="s">${esc(kind)}</div><div class="s mono">${esc(n.name)}</div></div>`;
+    }).join('')}</div>`;
+  }).join('') || '<span class="muted">مفيش مصادر.</span>';
+}
+
+// ------------------------------------------------------------ existing filter params
+function guessRange(key, value, p) {
+  if (typeof p.min === 'number' && typeof p.max === 'number' && p.max > p.min) return [p.min, p.max];
+  const k = key.toLowerCase();
+  if (/freq/.test(k)) return [20, 20000];
+  if (/:q$|\bq\b/.test(k)) return [0.1, 10];
+  if (/gain \d/.test(k)) return [0, 4];
+  if (/gain/.test(k)) return [-24, 24];
+  if (/threshold.*%|vad threshold/.test(k)) return [0, 99];
+  if (/retroactive/.test(k)) return [0, 200];
+  if (/\(ms\)|ms\b/.test(k)) return [0, 1000];
+  if (/volume/.test(k)) return [0, 2];
+  if (/db/.test(k)) return [-60, 24];
+  const v = Math.abs(Number(value)) || 1;
+  return [Math.min(0, Number(value)), v * 4];
+}
+function helpHtml(h) {
+  return `<details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help"><b>بيعمل إيه:</b> ${h.what}${h.up ? `<br><span class="up">▲ لو علّيته:</span> ${h.up}` : ''}${h.down ? `<br><span class="down">▼ لو وطّيته:</span> ${h.down}` : ''}</div></details>`;
+}
+let FILTER_SIG = '';
+function renderFilters(gr) {
+  if (!gr.ok) { $('filters').innerHTML = `<span class="muted">${esc(gr.error)}</span>`; return; }
+  const nodes = gr.controllable.filter((n) => n.params.some((p) => typeof p.value === 'number' || typeof p.value === 'boolean'));
+  $('filterCount').textContent = nodes.length ? `${nodes.length} فلتر` : '';
+  const sig = JSON.stringify(nodes.map((n) => [n.id, n.params.map((p) => p.key)]));
+  if (sig === FILTER_SIG) {
+    nodes.forEach((n) => n.params.forEach((p) => {
+      const row = document.querySelector(`.param[data-fid="${n.id}"][data-fkey="${CSS.escape(p.key)}"]`); if (!row) return;
+      row.querySelectorAll('input').forEach((el) => { if (document.activeElement !== el && el.type !== 'checkbox') el.value = el.dataset.num ? +Number(p.value).toFixed(3) : p.value; });
+      const h = paramHelp(p.key, p.value), now = row.querySelector('.now'); if (now && h.now) setNow(now, 'دلوقتي: ' + h.now, h.lv);
+    }));
+    return;
+  }
+  FILTER_SIG = sig;
+  if (!nodes.length) { $('filters').innerHTML = '<div class="empty clay">مفيش فلتر شغال بيطلّع إعدادات نقدر نتحكم فيها. فلاتر RNNoise/EQ اللي من نوع filter-chain بتطلّعها، إنما لو الفلتر بتاعك EasyEffects فظبطه من البرنامج نفسه.</div>'; return; }
+  $('filters').innerHTML = nodes.map((n) => `
+    <details class="fnode" open><summary>▾ ${esc(n.label)} <span class="mono muted">#${n.id} ${esc(n.name)}</span></summary>
+    ${n.params.map((p) => {
+      const h = paramHelp(p.key, p.value);
+      const head = `<div class="k">${esc(h.title)}<span class="mono" title="${esc(p.key)}">${esc(p.key)}</span></div>`;
+      const tail = `${h.now ? `<div class="now ${h.lv}">دلوقتي: ${h.now}</div>` : '<div class="now" style="display:none"></div>'}${helpHtml(h)}`;
+      if (typeof p.value === 'boolean') return `<div class="param" data-fid="${n.id}" data-fkey="${esc(p.key)}"><div class="top">${head}<div><input type="checkbox" ${p.value ? 'checked' : ''}></div><div></div></div>${tail}</div>`;
+      if (typeof p.value !== 'number') return '';
+      const [mn, mx] = guessRange(p.key, p.value, p);
+      const step = (mx - mn) > 100 ? 1 : (mx - mn) > 10 ? 0.1 : 0.01;
+      return `<div class="param" data-fid="${n.id}" data-fkey="${esc(p.key)}"><div class="top">${head}
+        <div><input type="range" min="${mn}" max="${mx}" step="${step}" value="${p.value}"></div>
+        <div><input type="number" step="${step}" value="${+Number(p.value).toFixed(3)}" data-num="1"></div></div>${tail}</div>`;
+    }).join('')}</details>`).join('');
+}
+const setParam = debounce((id, key, value) => api('/api/filter/set', { id, key, value }), 60);
+$('filters').addEventListener('input', (e) => {
+  const el = e.target, row = el.closest('.param'); if (!row) return;
+  interacting = true; clearTimeout(window._ih); window._ih = setTimeout(() => (interacting = false), 1500);
+  const id = Number(row.dataset.fid), key = row.dataset.fkey;
+  const value = el.type === 'checkbox' ? el.checked : Number(el.value);
+  row.querySelectorAll('input').forEach((o) => { if (o !== el && o.type !== 'checkbox') o.value = o.dataset.num ? +Number(value).toFixed(3) : value; });
+  const h = paramHelp(key, value), now = row.querySelector('.now');
+  if (h.now) { now.style.display = ''; setNow(now, 'دلوقتي: ' + h.now, h.lv); }
+  setParam(id, key, value);
+});
+
+// ------------------------------------------------------------ engine
+const PRESETS = {
+  flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  voice: [-6, -3, -1, 0, -1, 0, 2, 3, 2, 0],
+  warm: [0, 2, 3, 1, 0, -1, 0, 1, 0, -2],
+  deess: [0, 0, 0, 0, 0, 0, -1, -3, -4, -3],
+  laptop: [-8, -5, -2, -1, -2, 0, 3, 4, 2, -2],
+};
+const PRESET_INFO = {
+  flat: 'مسطح: الـ EQ مش بيغيّر أي حاجة، ودي نقطة البداية.',
+  voice: 'وضوح الكلام: بيشيل الزن والكتمة وبيعلّي منطقة الحروف (2k–8k)، وده مناسب للاجتماعات.',
+  warm: 'دافي: بيعلّي العمق (63–250Hz) وبيهدّي الحدة، زي صوت الراديو.',
+  deess: 'تخفيف الحدة: بيوطّي 4k–16k عشان يهدّي السين والهسهسة والصوت الحاد.',
+  laptop: 'مايك رخيص: بيشيل الزن والكتمة جامد وبيعلّي الوضوح، مناسب لمايك اللابتوب والكاميرا.',
+};
+function renderEngine() {
+  const s = SETTINGS;
+  $('engine').value = s.engine; $('makeDefault').checked = s.makeDefault; $('rnnoise').checked = s.rnnoise;
+  ['vadThreshold', 'vadGrace', 'retroGrace', 'highpass', 'outputGainDb'].forEach((k) => ($(k).value = s[k]));
+  $('w_ns').checked = s.webrtc.noiseSuppression; $('w_agc').checked = s.webrtc.gainControl; $('w_hp').checked = s.webrtc.highPass;
+  $('eq').innerHTML = s.eq.map((b, i) => `<div class="band" title="${esc((EQ_INFO[b.freq] || [''])[0])}"><span class="g" id="eqg${i}">${b.gain > 0 ? '+' : ''}${b.gain}</span><input type="range" min="-12" max="12" step="0.5" value="${b.gain}" data-eq="${i}"><span class="f">${fmtHz(b.freq)}</span></div>`).join('');
+  labels(); toggleEngineUI(); drawEqCurveCache();
+}
+function labels() {
+  const n = (id) => Number($(id).value);
+  $('vadV').textContent = n('vadThreshold') + '%';
+  $('graceV').textContent = n('vadGrace') + ' ms';
+  $('retroV').textContent = n('retroGrace') + ' ms';
+  $('hpV').textContent = n('highpass') ? n('highpass') + ' Hz' : 'off';
+  $('ogV').textContent = (n('outputGainDb') > 0 ? '+' : '') + n('outputGainDb') + ' dB';
+  const rn = $('rnnoise').checked;
+  let [d, lv] = describe.vad(n('vadThreshold')); setNow($('vadNow'), (rn ? '' : '(RNNoise مقفول، فالإعداد ده مش بيأثر) ') + d, rn ? lv : '');
+  [d, lv] = describe.grace(n('vadGrace')); setNow($('graceNow'), d, rn ? lv : '');
+  [d, lv] = describe.retro(n('retroGrace')); setNow($('retroNow'), d, rn ? lv : '');
+  [d, lv] = describe.hp(n('highpass')); setNow($('hpNow'), d, lv);
+  [d, lv] = describe.og(n('outputGainDb')); setNow($('ogNow'), d, lv);
+}
+function toggleEngineUI() {
+  const pw = $('engine').value === 'pipewire';
+  $('pwControls').style.display = pw ? '' : 'none';
+  $('webrtcControls').style.display = pw ? 'none' : '';
+}
+function collect() {
+  const s = SETTINGS;
+  s.engine = $('engine').value; s.master = $('master').value; s.makeDefault = $('makeDefault').checked; s.rnnoise = $('rnnoise').checked;
+  ['vadThreshold', 'vadGrace', 'retroGrace', 'highpass', 'outputGainDb'].forEach((k) => (s[k] = Number($(k).value)));
+  document.querySelectorAll('[data-eq]').forEach((el) => (s.eq[Number(el.dataset.eq)].gain = Number(el.value)));
+  s.webrtc = { noiseSuppression: $('w_ns').checked, gainControl: $('w_agc').checked, highPass: $('w_hp').checked };
+  return s;
+}
+const pushUpdate = debounce(async () => {
+  const r = await api('/api/clean/update', { settings: collect() });
+  if (r.ok) $('applyInfo').textContent = r.applied === 'live' ? '✓ اتطبّق فورًا' : r.applied === 'restart' ? '↻ بيعيد تشغيل الفلتر (ثانية)…' : 'اتحفظ (المحرك متوقف، شغّله عشان تسمع)';
+  if (r.applied === 'restart') setTimeout(refresh, 1500);
+}, 120);
+document.querySelector('#pwControls').addEventListener('input', (e) => {
+  if (e.target.dataset.eq !== undefined) { const i = Number(e.target.dataset.eq); const v = Number(e.target.value); $('eqg' + i).textContent = (v > 0 ? '+' : '') + v; collect(); describeBand(i); }
+  labels(); collect(); drawEqCurveCache(); pushUpdate();
+});
+$('eq').addEventListener('pointerdown', (e) => { const band = e.target.closest('.band'); if (band) describeBand([...band.parentNode.children].indexOf(band)); });
+['engine', 'master', 'makeDefault', 'w_ns', 'w_agc', 'w_hp'].forEach((id) => $(id).addEventListener('change', () => { toggleEngineUI(); collect(); drawEqCurveCache(); pushUpdate(); }));
+$('eqPreset').onchange = (e) => {
+  const key = e.target.value, p = PRESETS[key]; if (!p) return;
+  document.querySelectorAll('[data-eq]').forEach((el, i) => { el.value = p[i]; $('eqg' + i).textContent = (p[i] > 0 ? '+' : '') + p[i]; });
+  e.target.value = ''; collect(); drawEqCurveCache(); pushUpdate();
+  setNow($('eqNow'), PRESET_INFO[key], 'good');
+};
+$('startBtn').onclick = async () => {
+  $('startBtn').disabled = true; $('applyInfo').textContent = 'بيشغّل…';
+  const r = await api('/api/clean/start', { settings: collect() });
+  $('startBtn').disabled = false; $('applyInfo').textContent = r.ok ? '✓ شغال' : '';
+  if (r.ok) { toast('Mic (Mohamed) اشتغل. اختاره في A أو B في المراقبة'); setTimeout(listDevices, 800); }
+  refresh();
+};
+$('stopBtn').onclick = async () => { await api('/api/clean/stop', {}); $('applyInfo').textContent = 'اتوقف'; refresh(); };
+$('resetBtn').onclick = async () => { const r = await api('/api/clean/reset', {}); SETTINGS = r.settings; renderEngine(); fillMaster(STATUS); toast('رجعت الإعدادات الأصلية'); };
+
+function fillMaster(st) {
+  if (!st?.ok) return;
+  const sel = $('master'), cur = SETTINGS?.master ?? '';
+  const opts = st.sources.filter((s) => s.origin.kind !== 'monitor' && s.name !== 'mic_mohamed' && s.name !== 'mic_clean');
+  const html = `<option value="">(المدخل الافتراضي وقت التشغيل)</option>` + opts.map((s) => `<option value="${esc(s.name)}">${esc(s.description)}${s.origin.kind === 'hardware' ? ' — مايك حقيقي' : ' — ' + esc(s.origin.label)}</option>`).join('');
+  if (sel._html !== html) { sel.innerHTML = html; sel._html = html; }
+  sel.value = cur;
+  if (!cur && !sel._auto) { const hw = opts.find((s) => s.origin.kind === 'hardware'); if (hw) { sel.value = hw.name; SETTINGS.master = hw.name; } sel._auto = true; }
+}
+function renderEngineState(c) {
+  $('engineState').textContent = c.running ? `Mic (Mohamed) شغال · ${c.engine === 'pipewire' ? 'RNNoise' : 'WebRTC'}` : 'Mic (Mohamed) متوقف';
+  $('engDot').style.background = c.running ? 'var(--mint)' : 'var(--muted)';
+  const cap = c.capabilities;
+  $('rnnoiseInfo').innerHTML = cap.rnnoisePath ? `الملف: <span class="mono">${esc(cap.rnnoisePath)}</span>` : '<span style="color:var(--warn)">ملف RNNoise (LADSPA) مش موجود</span>، شوف README (noise-suppression-for-voice).';
+  if (!cap.pipewire) $('engine').querySelector('[value=pipewire]').textContent = 'RNNoise + EQ (مش متاح على الجهاز ده)';
+  $('engineMsg').innerHTML = c.lastError ? `<div class="status err">${esc(c.lastError)}</div>` : '';
+  $('engineLog').textContent = c.log?.length ? c.log.join('\n') : '—';
+}
+
+// ------------------------------------------------------------ configs / raw
+async function loadConfigs() {
+  const r = await api('/api/configs');
+  $('configs').innerHTML = (r.files?.length ? r.files.map((f) => `<details class="raw"><summary class="mono">${esc(f.path)}</summary><pre>${esc(f.content)}</pre></details>`).join('') : '<span class="muted">مفيش ملفات فلاتر في ~/.config/pipewire أو ~/.config/wireplumber أو /etc/pipewire أو إعدادات EasyEffects.</span>')
+    + (r.services ? `<div class="small muted" style="margin-top:8px">خدمات الصوت الشغالة:</div><pre>${esc(r.services)}</pre>` : '');
+}
+$('rawBtn').onclick = async () => {
+  const r = await api('/api/raw');
+  $('raw').innerHTML = Object.entries(r).map(([k, v]) => `<details class="raw"><summary class="mono">${esc(k)}</summary><pre>${esc(v)}</pre></details>`).join('');
+};
+
+// ------------------------------------------------------------ live monitor (Web Audio)
+let ctx = null, streams = {}, chains = {}, active = 'A', analyser, monGain, recDest, running = false;
+const FFT = 8192;
+
+async function listDevices() {
+  const devs = await navigator.mediaDevices.enumerateDevices();
+  const ins = devs.filter((d) => d.kind === 'audioinput' && d.deviceId !== 'communications');
+  const opt = ins.map((d) => `<option value="${esc(d.deviceId)}">${esc(d.label || 'مايك (اسمح للبراوزر يوصل للمايك عشان تظهر الأسماء)')}</option>`).join('');
+  for (const id of ['devA', 'devB']) { const cur = $(id).value; $(id).innerHTML = opt; if (cur && ins.some((d) => d.deviceId === cur)) $(id).value = cur; }
+  if (!listDevices._init && ins.some((d) => d.label)) {
+    listDevices._init = true;
+    const clean = ins.find((d) => /mohamed|clean|noise|rnnoise|filter/i.test(d.label) && d.deviceId !== 'default');
+    const raw = ins.find((d) => d.deviceId !== 'default' && !/mohamed|clean|noise|rnnoise|filter|monitor/i.test(d.label));
+    if (raw) $('devA').value = raw.deviceId;
+    if (clean) $('devB').value = clean.deviceId;
+  }
+}
+navigator.mediaDevices?.addEventListener?.('devicechange', listDevices);
+
+async function openStream(deviceId) {
+  return navigator.mediaDevices.getUserMedia({ audio: {
+    deviceId: deviceId ? { exact: deviceId } : undefined,
+    echoCancellation: $('bEC').checked, noiseSuppression: $('bNS').checked, autoGainControl: $('bAGC').checked,
+    channelCount: 1, sampleRate: 48000, latency: 0,
+  } });
+}
+async function startAudio() {
+  ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 });
+  analyser = ctx.createAnalyser(); analyser.fftSize = FFT; analyser.smoothingTimeConstant = 0.55;
+  monGain = ctx.createGain(); monGain.gain.value = 0;
+  recDest = ctx.createMediaStreamDestination();
+  analyser.connect(monGain); monGain.connect(ctx.destination); analyser.connect(recDest);
+  await listDevices();
+  await connectSides();
+  $('ctxInfo').textContent = `${ctx.sampleRate} Hz · ~${Math.round((ctx.baseLatency + (ctx.outputLatency || 0)) * 1000)} ms تأخير`;
+  running = true; $('micBtn').textContent = '■ وقّف الاستماع'; $('micBtn').classList.replace('primary', 'danger');
+  applyMonitor(); requestAnimationFrame(draw);
+}
+async function connectSides() {
+  for (const side of ['A', 'B']) {
+    streams[side]?.getTracks().forEach((t) => t.stop()); chains[side]?.src.disconnect();
+    const id = $('dev' + side).value;
+    if (!id) continue;
+    try {
+      const st = await openStream(id); streams[side] = st;
+      const src = ctx.createMediaStreamSource(st), g = ctx.createGain();
+      g.gain.value = side === active ? 1 : 0; src.connect(g); g.connect(analyser); chains[side] = { src, g };
+    } catch (e) { toast(`مقدرتش أفتح ${side}: ${e.message}`, 4000); }
+  }
+  await listDevices();
+}
+function stopAudio() {
+  running = false; Object.values(streams).forEach((s) => s.getTracks().forEach((t) => t.stop())); streams = {}; chains = {};
+  ctx?.close(); ctx = null; $('micBtn').textContent = '▶ ابدأ الاستماع'; $('micBtn').classList.replace('danger', 'primary');
+}
+function setActive(side) {
+  active = side; $('abA').classList.toggle('active', side === 'A'); $('abB').classList.toggle('active', side === 'B');
+  if (!ctx) return;
+  for (const s of ['A', 'B']) chains[s]?.g.gain.setTargetAtTime(s === side ? 1 : 0, ctx.currentTime, 0.01);
+  stats.hist = [];
+}
+function applyMonitor() { if (monGain) monGain.gain.setTargetAtTime($('monitorOn').checked ? Number($('monVol').value) : 0, ctx.currentTime, 0.02); }
+$('micBtn').onclick = () => (running ? stopAudio() : startAudio().catch((e) => toast('مشكلة في المايك: ' + e.message, 5000)));
+$('abA').onclick = () => setActive('A'); $('abB').onclick = () => setActive('B');
+$('monitorOn').onchange = applyMonitor; $('monVol').oninput = applyMonitor;
+['devA', 'devB', 'bNS', 'bEC', 'bAGC'].forEach((id) => $(id).addEventListener('change', () => ctx && connectSides()));
+document.addEventListener('keydown', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return; if (e.key === 'a') setActive('A'); if (e.key === 'b') setActive('B'); if (e.key === ' ') { e.preventDefault(); setActive(active === 'A' ? 'B' : 'A'); } });
+
+// ---- visualization
+const stats = { hist: [], peakHold: -100, peakT: 0, lastTip: 0 };
+const td = new Float32Array(FFT), fd = new Float32Array(FFT / 2);
+const toDb = (x) => (x > 1e-9 ? 20 * Math.log10(x) : -120);
+const pct = (db) => Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
+function sizeCanvas(c) { const r = c.getBoundingClientRect(), d = devicePixelRatio || 1; if (c.width !== Math.round(r.width * d)) { c.width = Math.round(r.width * d); c.height = Math.round(c.getAttribute('height') * d); c.style.height = c.getAttribute('height') + 'px'; } return c.getContext('2d'); }
+const fx = (f, w) => (Math.log10(f / 20) / Math.log10(20000 / 20)) * w;
+
+let eqCurve = null;
+function drawEqCurveCache() {
+  if (!SETTINGS) return;
+  const N = 256, freqs = new Float32Array(N);
+  for (let i = 0; i < N; i++) freqs[i] = 20 * Math.pow(1000, i / (N - 1));
+  const oc = new OfflineAudioContext(1, 1, 48000), total = new Float32Array(N).fill(0);
+  const add = (type, f, q, g) => { const b = oc.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; b.gain.value = g; const m = new Float32Array(N), p = new Float32Array(N); b.getFrequencyResponse(freqs, m, p); for (let i = 0; i < N; i++) total[i] += toDb(m[i]); };
+  if (SETTINGS.engine === 'pipewire') {
+    if (SETTINGS.highpass > 0) add('highpass', SETTINGS.highpass, 0.707, 0);
+    SETTINGS.eq.forEach((b) => b.gain && add('peaking', b.freq, b.q || 1, b.gain));
+    for (let i = 0; i < N; i++) total[i] += Number(SETTINGS.outputGainDb);
+  }
+  eqCurve = { freqs, total };
+}
+
+function levelAdvice(peakDb, floor, voice) {
+  if (stats.hist.length < 120) return ['بيقيس… اتكلم شوية واسكت شوية.', ''];
+  if (stats.peakHold > -1) return ['🔴 فيه تكسير (clipping): وطّي جين المايك الحقيقي لحد ما الـ Peak يفضل تحت −3 dB.', 'bad'];
+  if (voice < -40) return ['صوتك واطي: علّي جين المايك الحقيقي لحد ما الكلام يوصل من −24 لـ −12 dB في الـ RMS.', 'warn'];
+  if (floor > -45) return ['⚠ الضوضاء عالية وانت ساكت. جرّب B (Mic (clean)) أو علّي قوة البوابة (VAD) أو بعّد المايك عن مصدر الضوضاء.', 'warn'];
+  if (voice - floor < 25) return ['النقاء ضعيف: الكلام قريب من الضوضاء. قرّب من المايك أو قوّي العزل.', 'warn'];
+  if (floor < -65 && voice - floor > 40) return ['✔ ممتاز: الضوضاء واطية جدًا وصوتك واضح.', 'good'];
+  return ['✔ كويس: المستوى والنقاء مقبولين.', 'good'];
+}
+
+function draw() {
+  if (!running) return;
+  requestAnimationFrame(draw);
+  analyser.getFloatTimeDomainData(td);
+  let peak = 0, sum = 0;
+  for (let i = 0; i < td.length; i++) { const v = Math.abs(td[i]); if (v > peak) peak = v; sum += td[i] * td[i]; }
+  const rmsDb = toDb(Math.sqrt(sum / td.length)), peakDb = toDb(peak);
+  const now = performance.now();
+  if (peakDb > stats.peakHold || now - stats.peakT > 1500) { stats.peakHold = peakDb; stats.peakT = now; }
+  stats.hist.push(rmsDb); if (stats.hist.length > 300) stats.hist.shift();
+  const sorted = [...stats.hist].sort((a, b) => a - b);
+  const floor = sorted[Math.floor(sorted.length * 0.1)] ?? -120, voice = sorted[Math.floor(sorted.length * 0.95)] ?? -120;
+  $('mPeak').textContent = peakDb.toFixed(1); $('mPeak').style.color = peakDb > -1 ? 'var(--bad)' : '';
+  $('mRms').textContent = rmsDb.toFixed(1);
+  $('mFloor').textContent = floor.toFixed(1); $('mFloor').style.color = floor > -50 ? 'var(--warn)' : floor < -65 ? 'var(--good)' : '';
+  $('mSnr').textContent = `${voice.toFixed(0)} / ${(voice - floor).toFixed(0)}dB`;
+  $('lvFill').style.width = pct(rmsDb) + '%'; $('lvPeak').style.left = pct(stats.peakHold) + '%'; $('lvFloor').style.left = pct(floor) + '%';
+  if (now - stats.lastTip > 500) { stats.lastTip = now; const [t, lv] = levelAdvice(peakDb, floor, voice); setNow($('levelNow'), `<b>${active}:</b> ${t}`, lv); }
+
+  if ($('freeze').checked) return;
+  let g = sizeCanvas($('wave')); const W = g.canvas.width, H = g.canvas.height;
+  if (VIZ === 'wave' && W) {
+  g.clearRect(0, 0, W, H); g.strokeStyle = '#3b3858'; g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke();
+  g.strokeStyle = active === 'A' ? '#86bdfc' : '#ff9e7d'; g.lineWidth = 1.5 * devicePixelRatio; g.beginPath();
+  const step = td.length / W;
+  for (let x = 0; x < W; x++) { let mn = 1, mx = -1; for (let j = Math.floor(x * step); j < (x + 1) * step; j++) { const v = td[j]; if (v < mn) mn = v; if (v > mx) mx = v; } g.moveTo(x, (1 - mx) * H / 2); g.lineTo(x, (1 - mn) * H / 2); }
+  g.stroke();
+  }
+
+  analyser.getFloatFrequencyData(fd);
+  g = sizeCanvas($('spec')); const SW = g.canvas.width, SH = g.canvas.height, nyq = ctx.sampleRate / 2;
+  if (VIZ === 'spec' && SW) {
+  g.clearRect(0, 0, SW, SH);
+  const dpr = devicePixelRatio; g.font = `${10 * dpr}px system-ui`; g.fillStyle = '#8a86b0'; g.strokeStyle = '#3b3858'; g.lineWidth = 1;
+  [50, 100, 200, 500, 1000, 2000, 5000, 10000].forEach((f) => { const x = fx(f, SW); g.beginPath(); g.moveTo(x, 0); g.lineTo(x, SH); g.stroke(); g.fillText(f >= 1000 ? f / 1000 + 'k' : f, x + 3, SH - 4); });
+  [-20, -40, -60, -80].forEach((d) => { const y = (-d / 100) * SH; g.beginPath(); g.moveTo(0, y); g.lineTo(SW, y); g.stroke(); g.fillText(d + ' dB', 3, y - 3); });
+  const grad = g.createLinearGradient(0, 0, 0, SH); grad.addColorStop(0, active === 'A' ? 'rgba(134,189,252,.6)' : 'rgba(255,158,125,.6)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+  g.beginPath(); g.moveTo(0, SH);
+  for (let x = 0; x < SW; x++) {
+    const f0 = 20 * Math.pow(1000, x / SW), f1 = 20 * Math.pow(1000, (x + 1) / SW);
+    let i0 = Math.floor(f0 / nyq * fd.length), i1 = Math.max(i0 + 1, Math.floor(f1 / nyq * fd.length)), m = -140;
+    for (let i = i0; i < i1 && i < fd.length; i++) if (fd[i] > m) m = fd[i];
+    g.lineTo(x, Math.min(SH, (-m / 100) * SH));
+  }
+  g.lineTo(SW, SH); g.closePath(); g.fillStyle = grad; g.fill();
+  if (eqCurve && SETTINGS?.engine === 'pipewire') {
+    g.strokeStyle = '#ffd46b'; g.lineWidth = 2 * dpr; g.setLineDash([6 * dpr, 4 * dpr]); g.beginPath();
+    eqCurve.freqs.forEach((f, i) => { const y = SH / 2 - (eqCurve.total[i] / 24) * (SH / 2); i ? g.lineTo(fx(f, SW), y) : g.moveTo(fx(f, SW), y); });
+    g.stroke(); g.setLineDash([]);
+  }
+  }
+
+  g = sizeCanvas($('sgram')); const GW = g.canvas.width, GH = g.canvas.height;
+  if (!GW) return;
+  g.drawImage(g.canvas, -2, 0);
+  for (let y = 0; y < GH; y++) {
+    const f = 20 * Math.pow(1000, 1 - y / GH), i = Math.min(fd.length - 1, Math.floor(f / nyq * fd.length));
+    const v = Math.max(0, Math.min(1, (fd[i] + 100) / 80));
+    g.fillStyle = `hsl(${260 - v * 230},90%,${v * 55}%)`; g.fillRect(GW - 2, y, 2, 1);
+  }
+}
+
+// ---- record
+$('recBtn').onclick = () => {
+  if (!ctx) return toast('ابدأ الاستماع الأول');
+  const mr = new MediaRecorder(recDest.stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '' });
+  const chunks = []; mr.ondataavailable = (e) => chunks.push(e.data);
+  mr.onstop = () => { const url = URL.createObjectURL(new Blob(chunks, { type: 'audio/webm' })); $('player').src = url; $('dl').href = url; $('dl').download = `mic-${active}-${Date.now()}.webm`; $('dl').style.display = ''; $('recBtn').disabled = false; $('recBtn').textContent = '⏺ سجّل 10 ثواني'; };
+  mr.start(); $('recBtn').disabled = true;
+  let s = 10; $('recBtn').textContent = `بيسجل ${s}…`;
+  const t = setInterval(() => { s--; $('recBtn').textContent = `بيسجل ${s}…`; if (s <= 0) { clearInterval(t); mr.stop(); } }, 1000);
+};
+
+// ------------------------------------------------------------ tabs / viz / theme
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+function showTab(name) {
+  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('show', p.id === 'tab-' + name));
+  store.set('micTab', name);
+}
+$('tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) showTab(b.dataset.tab); });
+showTab(store.get('micTab') || 'listen');
+let VIZ = 'spec';
+const VIZ_HELP = {
+  spec: 'الترددات: الواطي ناحية الشمال والعالي ناحية اليمين. الخط الأصفر المتقطع = شكل الـ EQ بتاع «مايك نضيف جديد».',
+  sgram: 'الترددات على مر الوقت، والألوان الفاتحة = صوت أعلى. وانت ساكت، لو الفلتر شغال كويس الشاشة بتبقى <b>سودا</b>. الضوضاء بتظهر زي ضباب أو خطوط ثابتة.',
+  wave: 'شكل الموجة: لو لمست الحافة فوق أو تحت، الصوت بيتكسر ولازم توطي الجين.',
+};
+function showViz(v) {
+  VIZ = v;
+  document.querySelectorAll('#viz button').forEach((b) => b.classList.toggle('active', b.dataset.v === v));
+  document.querySelectorAll('[data-vp]').forEach((p) => (p.style.display = p.dataset.vp === v ? '' : 'none'));
+  $('vizHelp').innerHTML = VIZ_HELP[v];
+}
+$('viz').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) showViz(b.dataset.v); });
+showViz('spec');
+function applyTheme(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+applyTheme(store.get('micTheme'));
+$('themeBtn').onclick = () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const t = dark ? 'light' : 'dark'; applyTheme(t); store.set('micTheme', t);
+};
+
+// ------------------------------------------------------------ boot
+$('refreshBtn').onclick = () => { refresh(); loadConfigs(); };
+refresh(); loadConfigs(); listDevices();
+setInterval(() => $('autoRefresh').checked && refresh(), 3000);
+</script>
+<script>
+// ===== Old mic takeover =====
+(() => {
+  'use strict';
+  const q = (id) => document.getElementById(id);
+  if (!q('legacyCard')) return;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const post = async (p, b) => { const r = await fetch(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b || {}) }); return r.json().catch(() => ({ ok: false, error: 'رد غلط' })); };
+  const TYPE = {
+    config: ['📄 ملف إعدادات PipeWire', 'بيتحمّل مع PipeWire كل مرة الجهاز يفتح.'],
+    service: ['⚙️ خدمة بتشتغل مع الجهاز', 'خدمة systemd بتشغّل الفلتر أوتوماتيك.'],
+    autostart: ['🚀 برنامج بيفتح مع الدخول', 'بيتشغّل لما تعمل login.'],
+    module: ['🧩 موديول شغال دلوقتي', 'فلتر متحمّل دلوقتي في الصوت.'],
+    process: ['▶ برنامج شغال دلوقتي', 'برنامج مشغّل فلتر في الخلفية.'],
+  };
+  const say = (m) => { const t = q('toast'); if (t) { t.textContent = m; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 4000); } };
+  function render(items) {
+    const on = items.filter((x) => x.enabled);
+    const badge = q('lgBadge');
+    badge.textContent = on.length ? `${on.length} شغال` : 'مفيش حاجة قديمة ✓';
+    badge.className = 'badge ' + (on.length ? 'b-filter' : 'b-hardware');
+    q('lgAll').disabled = !on.some((x) => x.canChange);
+    if (!items.length) { q('lgList').innerHTML = '<div class="status">✓ مفيش أي مايك نضيف قديم. الداشبورد بقت هي الوحيدة اللي بتتحكم.</div>'; return; }
+    q('lgList').innerHTML = items.map((it) => {
+      const [t, d] = TYPE[it.type] || [it.type, ''];
+      const what = it.names?.length ? `بيعمل: <b>${it.names.map(esc).join('، ')}</b>` : '';
+      const where = it.path ? `<div class="mono muted" style="margin-top:2px">${esc(it.path)}</div>` : it.detail ? `<div class="mono muted">${esc(it.detail)}</div>` : '';
+      const btn = !it.canChange
+        ? `<div class="small" style="margin-top:6px">محتاج sudo. انسخ ونفّذ في التيرمنال:</div><pre>${esc(it.manual)}</pre>`
+        : it.enabled
+          ? `<button class="btn danger" data-lg-off="${esc(it.id)}">⏻ اقفله</button>`
+          : `<button class="btn mint" data-lg-on="${esc(it.id)}">↩ رجّعه</button>`;
+      return `<div class="status" style="margin-bottom:10px;${it.enabled ? '' : 'opacity:.75'}">
+        <div class="row"><b>${t}</b><span class="badge ${it.enabled ? 'b-filter' : 'b-unknown'}">${it.enabled ? 'شغال' : 'مقفول'}</span><span class="sp" style="flex:1"></span>${it.canChange ? btn : ''}</div>
+        <div class="small muted">${d} ${what}</div>${where}${it.canChange ? '' : btn}
+      </div>`;
+    }).join('');
+  }
+  async function load() {
+    q('lgList').innerHTML = 'بيدوّر…';
+    const r = await fetch('/api/legacy').then((x) => x.json()).catch(() => ({ ok: false }));
+    if (!r.ok) { q('lgList').innerHTML = '<div class="status err">مقدرتش أدوّر. شغّل السيرفر الجديد (Ctrl+C وبعدين node server.js).</div>'; return; }
+    q('lgAuto').checked = !!r.autoStart;
+    render(r.items);
+  }
+  q('lgList').addEventListener('click', async (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const id = b.dataset.lgOff || b.dataset.lgOn; if (!id) return;
+    b.disabled = true; b.textContent = '⏳ لحظة…';
+    const r = await post(b.dataset.lgOff ? '/api/legacy/disable' : '/api/legacy/enable', { id });
+    if (!r.ok) { say('⚠ ' + r.error); load(); return; }
+    say(r.restarted ? '✓ اتعمل و PipeWire اتعمله restart' : '✓ اتعمل');
+    render(r.items); if (typeof refresh === 'function') setTimeout(refresh, 800);
+  });
+  q('lgAll').onclick = async () => {
+    q('lgAll').disabled = true; q('lgAll').textContent = '⏳ بيقفل…';
+    const r = await post('/api/legacy/disable-all');
+    q('lgAll').textContent = '🧹 اقفل كل القديم';
+    if (!r.ok) { say('⚠ ' + r.error); return load(); }
+    say(r.errors?.length ? '⚠ فيه حاجات مقفلتش: ' + r.errors.join(' | ') : '✓ كل القديم اتقفل. شغّل Mic (Mohamed) من تحت');
+    render(r.items); if (typeof refresh === 'function') setTimeout(refresh, 1500);
+  };
+  q('lgRefresh').onclick = load;
+  q('lgAuto').onchange = async (e) => { const r = await post('/api/clean/autostart', { on: e.target.checked }); if (r.ok) say(r.autoStart ? '✓ Mic (Mohamed) هيشتغل لوحده مع السيرفر' : 'Mic (Mohamed) مش هيشتغل لوحده'); };
+  load();
+})();
+</script>
+
+<!-- ===== Double RNNoise + Compressor + Scenes ===== -->
+<style>
+.dn-wrap{--dn-card:var(--card,var(--panel,#f4f1ec));--dn-card2:var(--card2,var(--bg2,#e8e3dc));--dn-ac:var(--peach,var(--accent,#e38b5a));--dn-ok:var(--mint,var(--good,#4aad6f));--dn-mut:var(--muted,#8a8179)}
+.dn-scenes{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-top:10px}
+.dn-scene{border:0;cursor:pointer;text-align:start;padding:14px 16px;border-radius:22px;background:var(--dn-card);color:inherit;font:inherit;
+  box-shadow:6px 6px 14px rgba(0,0,0,.12),-5px -5px 12px rgba(255,255,255,.55),inset 2px 2px 4px rgba(255,255,255,.4);transition:.15s}
+.dn-scene:hover{transform:translateY(-2px)}
+.dn-scene .e{font-size:26px;line-height:1}
+.dn-scene .t{font-weight:800;margin-top:6px}
+.dn-scene .d{font-size:12px;color:var(--dn-mut);line-height:1.45;margin-top:2px}
+.dn-scene.on{background:var(--dn-ac);color:#2e1508;box-shadow:inset 4px 4px 9px rgba(0,0,0,.18),inset -3px -3px 8px rgba(255,255,255,.35)}
+.dn-scene.on .d{color:#4d2a15}
+.dn-pipe{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0 4px;direction:rtl}
+.dn-chip{padding:8px 12px;border-radius:16px;font-weight:800;font-size:12.5px;background:var(--dn-card2);color:var(--dn-mut);
+  box-shadow:inset 3px 3px 6px rgba(0,0,0,.1),inset -3px -3px 6px rgba(255,255,255,.4)}
+.dn-chip.on{background:var(--dn-ok);color:#0e3627;box-shadow:4px 4px 9px rgba(0,0,0,.14),inset 2px 2px 4px rgba(255,255,255,.45)}
+.dn-chip small{display:block;font-weight:600;font-size:10.5px;opacity:.8}
+.dn-arrow{color:var(--dn-mut);font-weight:800}
+.dn-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:14px}
+@media(max-width:700px){.dn-grid{grid-template-columns:minmax(0,1fr)}}
+.dn-f{padding:14px 16px;border-radius:22px;background:var(--dn-card);box-shadow:5px 5px 12px rgba(0,0,0,.1),-4px -4px 10px rgba(255,255,255,.5),inset 2px 2px 4px rgba(255,255,255,.35)}
+.dn-f .lbl{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin-bottom:8px;gap:8px}
+.dn-f .val{font-family:ui-monospace,monospace;font-size:12.5px;font-weight:800;padding:2px 10px;border-radius:99px;background:var(--dn-card2);direction:ltr}
+.dn-off{opacity:.45;pointer-events:none;filter:grayscale(.4)}
+.dn-sec{margin-top:22px;padding:18px 20px;border-radius:26px;background:var(--dn-card);box-shadow:8px 8px 18px rgba(0,0,0,.12),-6px -6px 14px rgba(255,255,255,.55),inset 3px 3px 6px rgba(255,255,255,.4)}
+.dn-sec h3{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:10px;font-weight:800}
+.dn-sec h3 .sp{flex:1}
+.dn-sec .lead{margin:2px 0 8px}
+</style>
+
+<template id="dnScenesTpl">
+  <section class="dn-wrap dn-sec" id="dnScenes" style="margin:0 0 22px">
+    <h3>🎙 أوضاع جاهزة <span class="sp"></span><span class="badge b-filter" id="dnProfile">بودكاست</span></h3>
+    <p class="lead small muted">دوسة واحدة بتظبط كل حاجة للموقف اللي انت فيه، وبعدين تقدر تعدّل براحتك. أول ما تعدّل أي حاجة بإيدك، الوضع بيتحول لـ «مخصص».</p>
+    <div class="dn-scenes" id="dnSceneList"></div>
+    <div class="dn-pipe" id="dnPipe"></div>
+    <div class="small muted">الصوت ماشي من اليمين للشمال في المراحل دي. الأخضر شغال، والرمادي مقفول.</div>
+  </section>
+</template>
+
+<template id="dnStage2Tpl">
+  <section class="dn-wrap dn-sec" id="dnStage2">
+    <h3>🧠🧠 عزل مزدوج (Double RNNoise) <span class="sp"></span>
+      <label class="chk"><input type="checkbox" class="switch" id="dnR2"> المرحلة التانية</label></h3>
+    <p class="lead small muted">الصوت بيعدي على RNNoise <b>مرتين ورا بعض</b>. المرحلة الأولى (الإعدادات اللي فوق) بتشيل أغلب الضوضاء وبتكتم السكوت. المرحلة التانية بتاخد الصوت اللي اتنضف وتعدّيه تاني، عشان تشيل <b>البواقي</b> اللي الأولى سابتها: هسهسة خفيفة، وبقايا كيبورد أو مروحة، وصدى الأوضة البسيط.</p>
+    <details class="hint"><summary>ⓘ إمتى أشغّلها؟ وإيه عيوبها؟</summary><div class="help">
+      <span class="up">✔ شغّلها لو:</span> المكان دوشة (تكييف، شارع، مروحة جنب المايك)، أو لسه سامع "ضباب" خفيف وانت ساكت بعد المرحلة الأولى، أو بتسجل بودكاست ومحتاج خلفية صامتة تمامًا.<br>
+      <span class="down">⚠ العيب:</span> لو المرحلتين قوايا، الصوت ممكن يبقى "روبوتي" أو "مضغوط" أو يقطع في آخر الكلام. عشان كده <b>خلي بوابة المرحلة التانية خفيفة (15–30%)</b>، وسيب الأولى هي اللي تكتم.<br>
+      <b>التأخير:</b> كل مرحلة بتزود حوالي <span class="ltr">10 ms</span>، وده مش هيبان في التسجيل ولا المكالمات.
+    </div></details>
+    <div class="dn-grid" id="dnR2Fields">
+      <div class="dn-f"><div class="lbl"><span>قوة بوابة المرحلة التانية</span><span class="val" id="dnV2v"></span></div>
+        <input type="range" id="dnV2" min="0" max="99" step="1"><div class="now" id="dnV2n"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">نفس فكرة بوابة المرحلة الأولى، بس على صوت نضيف أصلًا.<br><span class="up">▲ علّيها:</span> السكوت صامت أكتر، بس احتمال تقطيع الكلام بيزيد جامد، لأن المرحلتين بيكتموا مع بعض.<br><span class="down">▼ وطّيها (0–20):</span> المرحلة التانية بتنضّف بس ومش بتكتم. <b>ده الأحسن.</b></div></details></div>
+      <div class="dn-f"><div class="lbl"><span>سماح بعد الكلام (مرحلة 2)</span><span class="val" id="dnG2v"></span></div>
+        <input type="range" id="dnG2" min="0" max="1000" step="10"><div class="now" id="dnG2n"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">المرحلة التانية بتستنى المدة دي قبل ما تكتم.<br><span class="up">▲ علّيها:</span> مش هتاكل آخر الكلام اللي الأولى سابته. <b>خليها أطول من الأولى.</b><br><span class="down">▼ وطّيها:</span> الكتم أسرع، بس الكلام ممكن يبان متقطع.</div></details></div>
+      <div class="dn-f"><div class="lbl"><span>سماح قبل الكلام (مرحلة 2)</span><span class="val" id="dnRt2v"></span></div>
+        <input type="range" id="dnRt2" min="0" max="200" step="10"><div class="now" id="dnRt2n"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">بيلحق أول الكلمة في المرحلة التانية.<br><span class="up">▲</span> أول الحرف مش بيتقطع، بس بيزود تأخير.<br><span class="down">▼ (0)</span> مفيش تأخير زيادة، وده كفاية لو البوابة خفيفة.</div></details></div>
+    </div>
+  </section>
+</template>
+
+<template id="dnCompTpl">
+  <section class="dn-wrap dn-sec" id="dnComp">
+    <h3>🎚 الضاغط (Compressor) <span class="sp"></span>
+      <label class="chk"><input type="checkbox" class="switch" id="dnC"> شغّال</label></h3>
+    <p class="lead small muted">سر صوت البودكاست. بيخلي صوتك <b>ثابت العلو</b>: لما تعلّي صوتك أو تضحك بيوطّيه، وبعدين يعلّي الكل بالتساوي. الناس مش هتحتاج تعلّي وتوطّي الصوت وهي بتسمعك.</p>
+    <div id="dnCompMissing"></div>
+    <div class="dn-grid" id="dnCFields">
+      <div class="dn-f"><div class="lbl"><span>بيبدأ يضغط من (Threshold)</span><span class="val" id="dnCtv"></span></div>
+        <input type="range" id="dnCt" min="-40" max="0" step="1"><div class="now" id="dnCtn"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">أي صوت أعلى من المستوى ده بيتضغط.<br><span class="up">▲ علّيه (ناحية 0):</span> الضغط بيحصل في الصوت العالي بس، والصوت يفضل طبيعي أكتر.<br><span class="down">▼ وطّيه (ناحية −30):</span> الضغط على كل الكلام تقريبًا، فالصوت ثابت جدًا بس ممكن يبان "مخنوق".</div></details></div>
+      <div class="dn-f"><div class="lbl"><span>قوة الضغط (Ratio)</span><span class="val" id="dnCrv"></span></div>
+        <input type="range" id="dnCr" min="1" max="10" step="0.5"><div class="now" id="dnCrn"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">مثلًا <span class="ltr">3:1</span> معناها إن كل 3 dB فوق الحد بيبقوا 1 dB بس.<br><span class="up">▲ علّيها:</span> الصوت ثابت أكتر وزي صوت الراديو، بس فوق 6 بيبان مضغوط ومش طبيعي.<br><span class="down">▼ وطّيها (1 = مفيش ضغط):</span> الصوت طبيعي، وديناميكيته (العالي والواطي) بتفضل زي ما هي.</div></details></div>
+      <div class="dn-f"><div class="lbl"><span>سرعة المسك (Attack)</span><span class="val" id="dnCav"></span></div>
+        <input type="range" id="dnCa" min="1" max="100" step="1"><div class="now" id="dnCan"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">الضاغط بيبدأ يشتغل بعد المدة دي من أول ما الصوت يعلى.<br><span class="up">▲ أبطأ:</span> أول الحروف (زي ب، ت، ك) بيعدي بقوته، والكلام بيبان حي أكتر.<br><span class="down">▼ أسرع:</span> بيمسك أي قمة على طول، بس الكلام ممكن يبان باهت.</div></details></div>
+      <div class="dn-f"><div class="lbl"><span>سرعة الرجوع (Release)</span><span class="val" id="dnCrlv"></span></div>
+        <input type="range" id="dnCrl" min="20" max="1000" step="10"><div class="now" id="dnCrln"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">بعد ما الصوت يوطى، الضاغط بيسيب في المدة دي.<br><span class="up">▲ أطول:</span> ضغط ناعم ومستمر.<br><span class="down">▼ أقصر:</span> الضاغط بيسيب بسرعة، ولو قصير أوي هتسمع الخلفية "بتتنفس" (pumping).</div></details></div>
+      <div class="dn-f"><div class="lbl"><span>تعويض العلو (Makeup)</span><span class="val" id="dnCmv"></span></div>
+        <input type="range" id="dnCm" min="0" max="18" step="0.5"><div class="now" id="dnCmn"></div>
+        <details class="hint"><summary>ⓘ لو علّيت / وطّيت؟</summary><div class="help">الضغط بيوطّي الصوت، والإعداد ده بيعلّيه تاني.<br><span class="up">▲ علّيه:</span> الصوت أعلى وأقرب، بس راقب الـ Peak في «اسمع وقارن».<br><span class="down">▼ وطّيه:</span> الصوت أوطى.</div></details></div>
+    </div>
+    <div class="dn-grid">
+      <div class="dn-f" id="dnLimBox"><div class="lbl"><label class="chk"><input type="checkbox" class="switch" id="dnL"> 🛡 الليميتر (حماية من التكسير)</label><span class="val" id="dnLcv"></span></div>
+        <input type="range" id="dnLc" min="-12" max="0" step="0.5"><div class="now" id="dnLcn"></div>
+        <details class="hint"><summary>ⓘ بيعمل إيه؟ ولو علّيت / وطّيت؟</summary><div class="help">آخر مرحلة قبل ما الصوت يطلع، وده سقف محدش يعدّيه. بيخليك تعلّي الجين وانت مطمن: لو ضحكت أو علّيت صوتك فجأة، القمة بتتوطّى في لحظتها بدل ما تتكسر.<br><span class="up">▲ علّي السقف (ناحية 0):</span> أعلى صوت ممكن، بس هامش الأمان أقل.<br><span class="down">▼ وطّي السقف (ناحية −6):</span> أمان أكتر، بس الليميتر هيشتغل كتير والقمم هتتسطح.<br><b>الموصى بيه:</b> <span class="ltr" style="display:inline-block">-2 dB</span>، وخليه شغال دايمًا.</div></details></div>
+    </div>
+  </section>
+</template>
+
+<script>
+(() => {
+  'use strict';
+  const $$ = (id) => document.getElementById(id);
+  const pw = $$('pwControls');
+  if (!pw) return;
+  const L = (s) => `<span class="ltr">${s}</span>`;
+  const put = (tplId, where) => { const n = $$(tplId).content.firstElementChild.cloneNode(true); where(n); return n; };
+  put('dnScenesTpl', (n) => pw.parentNode.insertBefore(n, pw));
+  put('dnStage2Tpl', (n) => { // right after the stage-1 sliders block
+    const g = document.getElementById('vadThreshold')?.closest('#pwControls > *');
+    pw.insertBefore(n, g ? g.nextSibling : (pw.children[1] || null));
+  });
+  put('dnCompTpl', (n) => pw.appendChild(n));
+
+  const SCENES = {
+    podcast: { e: '🎙', t: 'بودكاست', d: 'عزل مزدوج وضغط ناعم وصوت دافي وواضح. للتسجيل.',
+      s: { rnnoise: true, vadThreshold: 55, vadGrace: 300, retroGrace: 50, rnnoise2: true, vad2Threshold: 20, vad2Grace: 400, retro2Grace: 0, highpass: 90,
+        eq: [-6, -3, 1.5, -2, -1.5, 0, 1.5, 2.5, -1, 0], comp: true, compThreshold: -20, compRatio: 3, compAttack: 10, compRelease: 150, compMakeup: 4, outputGainDb: 0 } },
+    lecture: { e: '🎓', t: 'تسجيل شرح', d: 'سكتات التفكير متتقطعش، وصوت واضح وعالي كفاية، ومن غير تكسير.',
+      s: { rnnoise: true, vadThreshold: 45, vadGrace: 450, retroGrace: 50, rnnoise2: true, vad2Threshold: 15, vad2Grace: 500, retro2Grace: 0, highpass: 80,
+        eq: [-6, -3, 1, -2, -1, 0.5, 2, 2.5, -1, 0], comp: true, compThreshold: -24, compRatio: 3, compAttack: 12, compRelease: 200, compMakeup: 6, outputGainDb: 0, limiter: true, limiterCeiling: -2 } },
+    meeting: { e: '💼', t: 'اجتماعات ومكالمات', d: 'كلام واضح ومن غير تأخير. زوم وتيمز وميت.',
+      s: { rnnoise: true, vadThreshold: 45, vadGrace: 250, retroGrace: 0, rnnoise2: false, vad2Threshold: 20, vad2Grace: 400, retro2Grace: 0, highpass: 100,
+        eq: [-6, -3, -1, 0, -1, 0, 2, 3, 2, 0], comp: true, compThreshold: -22, compRatio: 2.5, compAttack: 10, compRelease: 200, compMakeup: 3, outputGainDb: 0 } },
+    stream: { e: '🎮', t: 'ستريم وجيمنج', d: 'بيكتم الكيبورد والماوس جامد، وصوتك قوي.',
+      s: { rnnoise: true, vadThreshold: 70, vadGrace: 200, retroGrace: 30, rnnoise2: true, vad2Threshold: 30, vad2Grace: 300, retro2Grace: 0, highpass: 100,
+        eq: [-6, -3, 0, -1.5, -1, 0, 1.5, 2, 0, -1], comp: true, compThreshold: -18, compRatio: 3.5, compAttack: 8, compRelease: 150, compMakeup: 5, outputGainDb: 0 } },
+    noisy: { e: '🚧', t: 'مكان دوشة جدًا', d: 'أقصى عزل: شارع أو تكييف عالي أو ناس بتتكلم.',
+      s: { rnnoise: true, vadThreshold: 80, vadGrace: 250, retroGrace: 50, rnnoise2: true, vad2Threshold: 45, vad2Grace: 300, retro2Grace: 0, highpass: 120,
+        eq: [-8, -5, -2, -1, -2, 0, 3, 4, 2, -2], comp: true, compThreshold: -20, compRatio: 3, compAttack: 10, compRelease: 150, compMakeup: 4, outputGainDb: 0 } },
+    natural: { e: '🌿', t: 'طبيعي', d: 'أقل معالجة. بيشيل الضوضاء من غير ما يكتم، ومن غير EQ ولا ضغط.',
+      s: { rnnoise: true, vadThreshold: 0, vadGrace: 200, retroGrace: 0, rnnoise2: false, vad2Threshold: 20, vad2Grace: 400, retro2Grace: 0, highpass: 60,
+        eq: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], comp: false, compThreshold: -20, compRatio: 3, compAttack: 10, compRelease: 150, compMakeup: 0, outputGainDb: 0 } },
+  };
+  const PNAME = Object.fromEntries(Object.entries(SCENES).map(([k, v]) => [k, v.e + ' ' + v.t]));
+  $$('dnSceneList').innerHTML = Object.entries(SCENES).map(([k, v]) => `<button class="dn-scene" data-scene="${k}"><div class="e">${v.e}</div><div class="t">${v.t}</div><div class="d">${v.d}</div></button>`).join('');
+
+  const S = () => window.SETTINGS || (typeof SETTINGS !== 'undefined' ? SETTINGS : null);
+  const push = () => { if (typeof pushUpdate === 'function') pushUpdate(); };
+  const hasComp = () => { try { return !!STATUS?.clean?.capabilities?.compPath; } catch { return false; } };
+
+  const D = {
+    v2: (v) => v === 0 ? ['تنضيف بس، مفيش كتم. أنعم حاجة.', 'good'] : v <= 30 ? ['خفيفة، ودي الموصى بيها للمرحلة التانية.', 'good'] : v <= 55 ? ['متوسطة: خد بالك من تقطيع آخر الكلام.', 'warn'] : ['قوية: مع المرحلة الأولى غالبًا هتقطع كلام.', 'bad'],
+    g2: (v, g1) => v < 150 ? ['قصير: ممكن يقطع آخر الكلام.', 'warn'] : v < g1 ? [`أقصر من المرحلة الأولى (${g1} ms). الأحسن تبقى أطول منها.`, 'warn'] : ['كويس: أطول من الأولى، فمش هيقطع حاجة.', 'good'],
+    rt2: (v) => v === 0 ? ['مفيش تأخير زيادة.', 'good'] : [`بيزود تأخير ${L(v + ' ms')}.`, v > 60 ? 'warn' : 'good'],
+    ct: (v) => v >= -8 ? ['بيضغط الصوت العالي أوي بس، وتأثيره خفيف.', ''] : v >= -24 ? ['متوازن، ومناسب للبودكاست.', 'good'] : ['ضغط على كل الكلام تقريبًا، وممكن يبان مخنوق.', 'warn'],
+    cr: (v) => v <= 1 ? ['مفيش ضغط.', ''] : v <= 2 ? ['ضغط خفيف وطبيعي.', 'good'] : v <= 4 ? ['ضغط بودكاست: الصوت ثابت وقريب.', 'good'] : v <= 6 ? ['قوي، زي صوت الراديو.', 'warn'] : ['قوي جدًا، وبيبان مضغوط.', 'bad'],
+    ca: (v) => v < 5 ? ['سريع جدًا: بيمسك كل حاجة، والكلام ممكن يبان باهت.', 'warn'] : v <= 30 ? ['طبيعي للكلام.', 'good'] : ['بطيء: أول الحروف هيعدي بقوته.', ''],
+    crl: (v) => v < 80 ? ['سريع: ممكن تسمع الخلفية بتتنفس (pumping).', 'warn'] : v <= 400 ? ['ناعم وطبيعي.', 'good'] : ['بطيء: ضغط مستمر.', ''],
+    lc: (v) => v >= -0.5 ? ['مفيش هامش تقريبًا، وممكن يحصل تكسير بسيط في التحويل.', 'warn'] : v >= -3 ? ['موصى بيه: صوت عالي ومحمي.', 'good'] : ['أمان زيادة، بس القمم هتتسطح شوية.', ''],
+    cm: (v) => v === 0 ? ['مفيش تعويض.', ''] : v <= 8 ? [`بيعلّي ${L('+' + v + ' dB')} بعد الضغط.`, 'good'] : [`تعلية كبيرة ${L('+' + v + ' dB')}. راقب الـ Peak.`, 'warn'],
+  };
+  const setN = (id, [t, lv]) => { const el = $$(id); el.innerHTML = t; el.className = 'now' + (lv ? ' ' + lv : ''); };
+
+  const MAP = [ // [inputId, settingKey, fmt, describeKey]
+    ['dnV2', 'vad2Threshold', (v) => v + '%', 'v2'], ['dnG2', 'vad2Grace', (v) => v + ' ms', 'g2'], ['dnRt2', 'retro2Grace', (v) => v + ' ms', 'rt2'],
+    ['dnCt', 'compThreshold', (v) => v + ' dB', 'ct'], ['dnCr', 'compRatio', (v) => v + ':1', 'cr'], ['dnCa', 'compAttack', (v) => v + ' ms', 'ca'],
+    ['dnCrl', 'compRelease', (v) => v + ' ms', 'crl'], ['dnCm', 'compMakeup', (v) => '+' + v + ' dB', 'cm'],
+    ['dnLc', 'limiterCeiling', (v) => v + ' dB', 'lc'],
+  ];
+  function labelsAll() {
+    const s = S(); if (!s) return;
+    for (const [id, key, fmt, dk] of MAP) { const v = Number($$(id).value); $$(id + 'v').textContent = fmt(v); setN(id + 'n', D[dk](v, Number(s.vadGrace))); }
+    const r1 = !!s.rnnoise;
+    $$('dnStage2').classList.toggle('dn-off', !r1);
+    $$('dnR2Fields').classList.toggle('dn-off', !$$('dnR2').checked);
+    $$('dnCFields').classList.toggle('dn-off', !$$('dnC').checked || !hasComp());
+    $$('dnLc').classList.toggle('dn-off', !$$('dnL').checked || !hasComp()); $$('dnLimBox').classList.toggle('dn-off', !hasComp());
+    $$('dnCompMissing').innerHTML = hasComp() ? '' : '<div class="status">⚠ الضاغط محتاج إضافة صغيرة. نفّذ في التيرمنال: <span class="mono">sudo apt install swh-plugins</span>، وبعدين أعد تشغيل السيرفر. من غيرها المايك شغال عادي، بس من غير ضغط.</div>';
+    const p = s.profile || 'custom';
+    $$('dnProfile').textContent = PNAME[p] || '✏️ مخصص';
+    document.querySelectorAll('.dn-scene').forEach((b) => b.classList.toggle('on', b.dataset.scene === p));
+    // pipeline
+    const chip = (on, t, sub) => `<span class="dn-chip ${on ? 'on' : ''}">${t}<small>${sub}</small></span>`;
+    const eqOn = (s.eq || []).some((b) => Number(b.gain) !== 0);
+    const parts = [
+      chip(true, '🎤 المايك', 'USB'),
+      chip(Number(s.highpass) > 0, 'قص الواطي', Number(s.highpass) > 0 ? s.highpass + ' Hz' : 'مقفول'),
+      chip(r1, 'RNNoise ١', r1 ? 'بوابة ' + s.vadThreshold + '%' : 'مقفول'),
+      chip(r1 && s.rnnoise2, 'RNNoise ٢', r1 && s.rnnoise2 ? 'بوابة ' + s.vad2Threshold + '%' : 'مقفول'),
+      chip(eqOn, 'EQ', eqOn ? 'متعدّل' : 'مسطح'),
+      chip(s.comp && hasComp(), 'ضاغط', s.comp ? (hasComp() ? s.compRatio + ':1' : 'مش متسطب') : 'مقفول'),
+      chip(true, 'تعلية', (Number(s.outputGainDb) > 0 ? '+' : '') + s.outputGainDb + ' dB'),
+      chip(s.limiter !== false && hasComp(), '🛡 ليميتر', s.limiter !== false ? (hasComp() ? s.limiterCeiling + ' dB' : 'مش متسطب') : 'مقفول'),
+      chip(true, '📥 Mic (Mohamed)', 'للبرامج'),
+    ];
+    $$('dnPipe').innerHTML = parts.join('<span class="dn-arrow">←</span>');
+  }
+  function sync() {
+    const s = S(); if (!s) return;
+    $$('dnR2').checked = !!s.rnnoise2; $$('dnC').checked = !!s.comp; $$('dnL').checked = s.limiter !== false;
+    for (const [id, key] of MAP) if (document.activeElement !== $$(id)) $$(id).value = s[key];
+    labelsAll();
+  }
+  // keep in sync whenever the main page re-renders the engine UI
+  if (typeof renderEngine === 'function') { const orig = renderEngine; window.renderEngine = function () { orig.apply(this, arguments); sync(); }; }
+
+  const markCustom = () => { const s = S(); if (s && s.profile !== 'custom') { s.profile = 'custom'; } };
+  for (const [id, key] of MAP) $$(id).addEventListener('input', () => { const s = S(); if (!s) return; s[key] = Number($$(id).value); markCustom(); labelsAll(); push(); });
+  $$('dnR2').addEventListener('change', () => { const s = S(); if (!s) return; s.rnnoise2 = $$('dnR2').checked; markCustom(); labelsAll(); push(); });
+  $$('dnL').addEventListener('change', () => { const s = S(); if (!s) return; s.limiter = $$('dnL').checked; markCustom(); labelsAll(); push(); });
+  $$('dnC').addEventListener('change', () => { const s = S(); if (!s) return; s.comp = $$('dnC').checked; markCustom(); labelsAll(); push(); });
+  // main controls edited by hand → custom
+  pw.addEventListener('input', (e) => { if (!e.target.closest('.dn-wrap')) { markCustom(); setTimeout(labelsAll, 0); } }, true);
+  pw.addEventListener('change', (e) => { if (!e.target.closest('.dn-wrap')) { markCustom(); setTimeout(labelsAll, 0); } }, true);
+
+  $$('dnSceneList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-scene]'); if (!b) return;
+    const s = S(); if (!s) return;
+    const sc = SCENES[b.dataset.scene];
+    const { eq, ...rest } = sc.s;
+    Object.assign(s, rest, { profile: b.dataset.scene, engine: 'pipewire' });
+    s.eq.forEach((band, i) => (band.gain = eq[i] ?? 0));
+    if (typeof renderEngine === 'function') renderEngine(); else sync();
+    push();
+    const info = document.getElementById('applyInfo'); if (info) info.textContent = `✓ اتطبّق وضع ${sc.t}`;
+  });
+
+  // wait for first status load
+  const wait = setInterval(() => { if (S()) { clearInterval(wait); sync(); } }, 300);
+  setInterval(labelsAll, 3000); // capability (compressor installed?) may change after refresh
+})();
+</script>
+
+<!-- ===== Gain calibration wizard ===== -->
+<style>
+.cb-wrap{--cb-card:var(--card,var(--panel,#f4f1ec));--cb-card2:var(--card2,var(--bg2,#e8e3dc));--cb-ac:var(--peach,var(--accent,#e38b5a));--cb-ok:var(--mint,var(--good,#4aad6f));--cb-mut:var(--muted,#8a8179)}
+.cb-sec{margin:0 0 22px;padding:20px 22px;border-radius:26px;background:var(--cb-card);box-shadow:8px 8px 18px rgba(0,0,0,.12),-6px -6px 14px rgba(255,255,255,.55),inset 3px 3px 6px rgba(255,255,255,.4)}
+.cb-sec h3{margin:0 0 4px;font-size:17px;display:flex;align-items:center;gap:10px;font-weight:800}
+.cb-sec h3 .sp{flex:1}
+.cb-steps{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.cb-step{flex:1;min-width:130px;padding:10px 12px;border-radius:18px;background:var(--cb-card2);font-size:12.5px;color:var(--cb-mut);font-weight:700;
+  box-shadow:inset 3px 3px 6px rgba(0,0,0,.08),inset -3px -3px 6px rgba(255,255,255,.4)}
+.cb-step b{display:block;font-size:13.5px}
+.cb-step.on{background:var(--cb-ac);color:#2e1508}
+.cb-step.done{background:var(--cb-ok);color:#0e3627}
+.cb-meter{height:26px;border-radius:99px;background:var(--cb-card2);position:relative;overflow:hidden;direction:ltr;margin:10px 0 4px;
+  box-shadow:inset 4px 4px 8px rgba(0,0,0,.1),inset -4px -4px 8px rgba(255,255,255,.4)}
+.cb-meter .fill{position:absolute;inset:4px auto 4px 4px;border-radius:99px;background:linear-gradient(90deg,var(--cb-ok),var(--cb-ok) 70%,#ffd46b 85%,#ff8fa3);width:0;transition:width .06s}
+.cb-meter .zone{position:absolute;top:0;bottom:0;background:rgba(111,211,179,.25);border-inline:2px dashed rgba(63,174,140,.8)}
+.cb-scale{display:flex;justify-content:space-between;direction:ltr;font-size:11px;color:var(--cb-mut)}
+.cb-plan{display:grid;gap:10px;margin-top:12px}
+.cb-plan .it{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:18px;background:var(--cb-card2)}
+.cb-plan .n{flex:none;width:30px;height:30px;border-radius:11px;display:grid;place-items:center;font-weight:800;background:var(--cb-ac);color:#2e1508}
+.cb-big{font-family:ui-monospace,monospace;font-weight:800;font-size:22px;direction:ltr;unicode-bidi:isolate;display:inline-block}
+.cb-wrap .ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.cb-count{font-size:40px;font-weight:800;font-family:ui-monospace,monospace}
+.cb-read{font-size:15px;line-height:2;padding:12px 16px;border-radius:18px;background:var(--cb-card2);margin-top:10px}
+</style>
+<template id="cbTpl">
+<section class="cb-wrap cb-sec" id="cbCard">
+  <h3>🎚 معايرة الجين (المايك واطي؟) <span class="sp"></span><span class="badge b-hardware" id="cbBadge">جاهز</span></h3>
+  <p class="lead small muted" style="margin:2px 0 6px">اتكلم 8 ثواني، والداشبورد هتقيس صوتك وتعلّيه للمستوى الصح <b>من غير ما تبوّظ النقاء</b>. بتعلّي الجين بالترتيب ده:</p>
+  <div class="cb-steps">
+    <div class="cb-step" id="cbS1"><b>١. جين المايك نفسه</b>لحد 100%. ده أنضف تعلية، لأنها من الهاردوير قبل أي معالجة.</div>
+    <div class="cb-step" id="cbS2"><b>٢. تعلية بعد العزل</b>لو لسه واطي، بتعلّي <i>بعد</i> RNNoise، فالضوضاء اللي اتشالت مش بتعلى معاك.</div>
+    <div class="cb-step" id="cbS3"><b>٣. الليميتر</b>سقف بيحمي صوتك من التكسير لو ضحكت أو علّيت صوتك فجأة.</div>
+  </div>
+  <label class="chk small"><input type="checkbox" class="switch" id="cbLecture" checked> طبّق كمان وضع «🎓 تسجيل شرح»: سكتات أطول ما بين الكلام من غير تقطيع، ووضوح أعلى</label>
+  <div class="row" style="margin-top:14px">
+    <button class="btn primary big" id="cbStart">▶ ابدأ المعايرة</button>
+    <span class="small muted" id="cbHint">هيشغّل الاستماع على A (المايك الخام) لوحده.</span>
+  </div>
+  <div id="cbLive" style="display:none">
+    <div class="row" style="margin-top:14px"><span class="cb-count" id="cbCount">8</span><span class="small muted">اقرا الجملة دي بصوتك العادي، بنفس المسافة اللي هتسجل بيها:</span></div>
+    <div class="cb-read">«أهلًا بيكم، النهارده هنشرح إزاي نظبط الصوت. هنبدأ بالخطوة الأولى، وبعدين نشوف النتيجة مع بعض، واحدة واحدة.»</div>
+    <div class="cb-meter"><div class="zone" id="cbZone"></div><div class="fill" id="cbFill"></div></div>
+    <div class="cb-scale"><span>-60</span><span>-40</span><span>-30</span><span>-20</span><span>-12</span><span>-6</span><span>0 dB</span></div>
+    <div class="small muted" style="margin-top:4px">المنطقة الخضرا = المستوى المثالي لصوت الكلام.</div>
+  </div>
+  <div id="cbResult"></div>
+  <details class="hint" style="margin-top:10px"><summary>ⓘ نصايح عشان صوت الشرح يطلع نقي</summary><div class="help">
+    <b>المسافة أهم من الجين:</b> خلي المايك على بعد 10–15 سم (شبر تقريبًا) من بوقك. كل ما تبعد الضعف، صوتك بيوطى 6 dB وصدى الأوضة بيزيد. قرّب الأول، وبعدين علّي الجين.<br>
+    <b>اتكلم جنب المايك، مش جواه:</b> ميّل المايك شوية على جنب عشان حروف زي ب و ت متعملش "فرقعة".<br>
+    <b>الأوضة:</b> ستارة أو سرير أو دولاب هدوم بيقللوا الصدى. الأوض الفاضية والحيطان الناشفة بيعملوا صدى، و RNNoise مش بيشيله كله.<br>
+    <b>ليه مش بعلّي فوق 100% على المايك نفسه؟</b> لأن فوق 100% تكبير رقمي، بيعلّي الهسهسة قبل العزل. الأحسن نعلّي بعد العزل، والليميتر يحمي.
+  </div></details>
+</section>
+</template>
+<script>
+(() => {
+  'use strict';
+  const $$ = (id) => document.getElementById(id);
+  const mic = $$('micBtn'); if (!mic) return;
+  const panel = mic.closest('.panel, .tab-panel') || mic.parentNode;
+  panel.insertBefore($$('cbTpl').content.firstElementChild.cloneNode(true), panel.firstElementChild);
+
+  const post = async (p, b) => { const r = await fetch(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }); return r.json().catch(() => ({ ok: false })); };
+  const L = (s) => `<span class="ltr">${s}</span>`;
+  const toDb = (x) => (x > 1e-9 ? 20 * Math.log10(x) : -120);
+  const pos = (db) => Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
+  $$('cbZone').style.left = pos(-24) + '%'; $$('cbZone').style.width = (pos(-16) - pos(-24)) + '%';
+  const TARGET_VOICE = -20, TARGET_PEAK = -6, MAX_POST = 12;
+  const G = (name) => { try { return eval(name); } catch { return undefined; } }; // read other script's globals (let/const)
+  const step = (n, cls) => { const e = $$('cbS' + n); e.classList.remove('on', 'done'); if (cls) e.classList.add(cls); };
+  const badge = (t, cls) => { $$('cbBadge').textContent = t; $$('cbBadge').className = 'badge ' + cls; };
+
+  function hwSource() {
+    const st = G('STATUS'), s = G('SETTINGS'); if (!st?.sources) return null;
+    return st.sources.find((x) => x.name === s?.master && x.origin.kind === 'hardware') || st.sources.find((x) => x.origin.kind === 'hardware' && x.isDefault) || st.sources.find((x) => x.origin.kind === 'hardware');
+  }
+  async function ensureListening(side) {
+    if (!G('running')) { mic.click(); for (let i = 0; i < 40 && !G('running'); i++) await new Promise((r) => setTimeout(r, 150)); }
+    const setActive = G('setActive'); if (typeof setActive === 'function') setActive(side);
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  async function measure(seconds) {
+    const an = G('analyser'); if (!an) throw new Error('الاستماع مشتغلش');
+    const buf = new Float32Array(an.fftSize), rms = [], peaks = [];
+    $$('cbLive').style.display = '';
+    const t0 = performance.now();
+    await new Promise((done) => {
+      const iv = setInterval(() => {
+        an.getFloatTimeDomainData(buf);
+        let pk = 0, sum = 0; for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i]); if (v > pk) pk = v; sum += buf[i] * buf[i]; }
+        const r = toDb(Math.sqrt(sum / buf.length)); rms.push(r); peaks.push(toDb(pk));
+        $$('cbFill').style.width = pos(r) + '%';
+        const left = Math.max(0, Math.ceil(seconds - (performance.now() - t0) / 1000)); $$('cbCount').textContent = left;
+        if (performance.now() - t0 > seconds * 1000) { clearInterval(iv); done(); }
+      }, 50);
+    });
+    $$('cbLive').style.display = 'none';
+    const sr = [...rms].sort((a, b) => a - b), sp = [...peaks].sort((a, b) => a - b);
+    return { voice: sr[Math.floor(sr.length * 0.9)], floor: sr[Math.floor(sr.length * 0.1)], peak: sp[Math.floor(sp.length * 0.995)] };
+  }
+  const pctToDb = (p) => 60 * Math.log10(Math.max(1, p) / 100);  // pactl cubic volume curve
+  const dbToPct = (d) => 100 * Math.pow(10, d / 60);
+
+  let plan = null;
+  $$('cbStart').onclick = async () => {
+    const src = hwSource();
+    if (!src) { $$('cbResult').innerHTML = '<div class="status err">مش لاقي المايك الحقيقي (USB). افتح تاب «المايكات» واتأكد إنه ظاهر.</div>'; return; }
+    $$('cbStart').disabled = true; $$('cbResult').innerHTML = ''; badge('بيقيس…', 'b-filter'); step(1, 'on'); step(2); step(3);
+    try {
+      await ensureListening('A');
+      const m = await measure(8);
+      if (m.voice - m.floor < 8) {
+        badge('مسمعتش كلام', 'b-filter');
+        $$('cbResult').innerHTML = `<div class="status err">مسمعتش كلام واضح (الفرق بين الكلام والسكوت ${m.voice - m.floor < 0 ? 0 : (m.voice - m.floor).toFixed(0)} dB بس). اتأكد إن A = المايك الـ USB، واتكلم بصوت عادي طول الـ 8 ثواني.</div>`;
+        return;
+      }
+      const need = Math.min(TARGET_VOICE - m.voice, TARGET_PEAK - m.peak);   // dB to add (neg = too loud)
+      const curPct = src.volumePercent ?? 100, curDb = pctToDb(curPct);
+      let newPct = Math.round(Math.max(20, Math.min(100, dbToPct(curDb + need))));
+      if (need > 0 && newPct < curPct) newPct = curPct;
+      const hwGain = pctToDb(newPct) - curDb;
+      const rest = Math.max(0, need - hwGain);
+      const post = Math.min(MAX_POST, Math.round(rest * 2) / 2);
+      plan = { src, curPct, newPct, hwGain, post, need, m, short: rest - post };
+      badge('جاهز للتطبيق', 'b-filter'); step(1, 'done');
+      const verdict = need > 1 ? `صوتك <b>واطي</b> بحوالي ${L(need.toFixed(1) + ' dB')}.` : need < -1 ? `صوتك <b>عالي</b> بحوالي ${L((-need).toFixed(1) + ' dB')}، وممكن يتكسر.` : 'صوتك <b>مظبوط</b> تقريبًا.';
+      $$('cbResult').innerHTML = `
+        <div class="status" style="margin-top:12px">📊 كلامك عند ${L(m.voice.toFixed(1) + ' dB')} (المثالي حوالي ${L(TARGET_VOICE + ' dB')})، وأعلى قمة ${L(m.peak.toFixed(1) + ' dB')}، والضوضاء وانت ساكت ${L(m.floor.toFixed(1) + ' dB')}.<br>${verdict}</div>
+        <div class="cb-plan">
+          <div class="it"><span class="n">١</span><div>جين <b>${src.description}</b>: من <span class="cb-big">${curPct}%</span> لـ <span class="cb-big">${newPct}%</span> (${L((hwGain >= 0 ? '+' : '') + hwGain.toFixed(1) + ' dB')}).<div class="small muted">${newPct >= 100 && need > hwGain + 0.5 ? 'وصلنا لأقصى تعلية نضيفة من المايك نفسه.' : 'تعلية من المايك نفسه، ودي أنضف حاجة.'}</div></div></div>
+          <div class="it"><span class="n">٢</span><div>تعلية بعد عزل الضوضاء: <span class="cb-big">${L('+' + post + ' dB')}</span><div class="small muted">${post > 0 ? 'بتعلّي صوتك بعد ما الضوضاء اتشالت، فالنقاء بيفضل زي ما هو.' : 'مش محتاجين.'}</div></div></div>
+          <div class="it"><span class="n">٣</span><div>الليميتر: سقف عند ${L('-2 dB')}.<div class="small muted">لو علّيت صوتك فجأة، مش هيحصل تكسير.</div></div></div>
+          ${plan.short > 1 ? `<div class="status err">⚠ لسه ناقص ${L(plan.short.toFixed(1) + ' dB')} بعد أقصى تعلية آمنة. <b>قرّب من المايك</b> (10–15 سم) أو اتأكد إنه مش متوجّه بعيد عنك، وبعدين عيد المعايرة. التعلية الزيادة هتعلّي الهسهسة.</div>` : ''}
+        </div>
+        <div class="row" style="margin-top:14px"><button class="btn mint big" id="cbApply">✓ طبّق</button><button class="btn" id="cbAgain">↻ عيد القياس</button></div>`;
+      $$('cbApply').onclick = apply; $$('cbAgain').onclick = () => $$('cbStart').click();
+    } catch (e) {
+      badge('مشكلة', 'b-filter'); $$('cbResult').innerHTML = `<div class="status err">${e.message}</div>`;
+    } finally { $$('cbStart').disabled = false; }
+  };
+
+  async function apply() {
+    const s = G('SETTINGS'); if (!s || !plan) return;
+    $$('cbApply').disabled = true; step(2, 'on');
+    await post('/api/source/volume', { name: plan.src.name, percent: plan.newPct });
+    if ($$('cbLecture').checked) { const b = document.querySelector('[data-scene="lecture"]'); if (b) b.click(); }
+    s.outputGainDb = plan.post; s.limiter = true; s.limiterCeiling = -2;
+    if (!s.master) s.master = plan.src.name;
+    const re = G('renderEngine'); if (typeof re === 'function') re();
+    const pu = G('pushUpdate'); if (typeof pu === 'function') pu();
+    const ref = G('refresh'); if (typeof ref === 'function') setTimeout(ref, 600);
+    step(2, 'done'); step(3, 'done'); badge('اتطبّق ✓', 'b-hardware');
+    const st = G('STATUS'); const running = st?.clean?.running;
+    $$('cbResult').innerHTML += `<div class="status" style="margin-top:12px">✓ اتطبّق. ${running ? '' : '<b>شغّل Mic (Mohamed)</b> من تاب «مايك نضيف جديد» عشان التعلية بعد العزل تشتغل. '}دوس «اختبر النتيجة» واتكلم 5 ثواني على Mic (Mohamed) (B).</div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="cbVerify">🎧 اختبر النتيجة على B</button></div>`;
+    $$('cbVerify').onclick = verify;
+  }
+  async function verify() {
+    $$('cbVerify').disabled = true; badge('بيختبر…', 'b-filter');
+    await ensureListening('B');
+    const m = await measure(5);
+    const okV = m.voice >= -24 && m.voice <= -14, okP = m.peak < -1, okF = m.floor < -55;
+    badge(okV && okP ? 'ممتاز ✓' : 'محتاج لمسة', okV && okP ? 'b-hardware' : 'b-filter');
+    $$('cbResult').innerHTML += `<div class="status" style="margin-top:12px">
+      ${okV ? '✅' : '⚠'} الكلام: ${L(m.voice.toFixed(1) + ' dB')} ${okV ? '(مثالي للشرح)' : m.voice < -24 ? '(لسه واطي. علّي «التعلية النهائية» شوية، أو قرّب من المايك)' : '(عالي شوية. وطّي «التعلية النهائية»)'}<br>
+      ${okP ? '✅' : '⚠'} أعلى قمة: ${L(m.peak.toFixed(1) + ' dB')} ${okP ? '(مفيش تكسير)' : '(قريب من التكسير. وطّي التعلية)'}<br>
+      ${okF ? '✅' : '⚠'} الضوضاء وانت ساكت: ${L(m.floor.toFixed(1) + ' dB')} ${okF ? '(نضيف)' : '(فيه ضوضاء. علّي بوابة RNNoise ١ أو شغّل المرحلة التانية)'}
+    </div>`;
+  }
+})();
+</script>
+</body>
+</html>

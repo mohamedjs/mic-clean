@@ -1,0 +1,9 @@
+{
+  "name": "mic-clean-dashboard",
+  "version": "1.0.0",
+  "description": "Visualize, monitor and tune your PipeWire/PulseAudio microphone noise cancellation (RNNoise, EQ, gain).",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}
