@@ -26,6 +26,8 @@ KEYS='filter-chain|rnnoise|noise[_-]?suppress|echo-cancel|ladspa|deepfilter|nois
 
 # ---------------------------------------------------------------- 1
 say "1) بقفل الداشبورد وأي فلتر شغال"
+HAS_SVC=0
+if systemctl --user cat mic-mohamed.service >/dev/null 2>&1; then HAS_SVC=1; systemctl --user stop mic-mohamed.service && ok "وقفت خدمة الداشبورد مؤقتًا"; fi
 DPID="$(ss -ltnp 2>/dev/null | grep ':4747 ' | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"
 if [ -n "${DPID:-}" ]; then kill "$DPID" 2>/dev/null && ok "قفلت الداشبورد (pid $DPID)"; sleep 1; else ok "الداشبورد مش شغالة"; fi
 while read -r pid args; do
@@ -50,6 +52,7 @@ if [ -d "$HOME/.config/systemd/user" ]; then
   mkdir -p "$BK/systemd-user"
   for f in "$HOME"/.config/systemd/user/*.service; do
     [ -f "$f" ] || continue
+    [ "$(basename "$f")" = "mic-mohamed.service" ] && continue   # the dashboard itself — keep it
     if grep -Eqi "$KEYS|pipewire +-c|pactl +load-module" "$f"; then
       u="$(basename "$f")"
       systemctl --user disable --now "$u" >/dev/null 2>&1
@@ -130,6 +133,8 @@ PY
 else
   warn "مقدرتش أختبر (parecord أو python3 مش موجود). جرّب من الإعدادات → الصوت."
 fi
+
+if [ "$HAS_SVC" = 1 ]; then systemctl --user start mic-mohamed.service && ok "رجّعت خدمة الداشبورد تشتغل"; fi
 
 say "خلصنا ✓"
 echo "   الباك أب في: $BK"

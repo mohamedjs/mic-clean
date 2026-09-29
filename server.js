@@ -214,6 +214,7 @@ async function getStatus() {
 
   return {
     ok: true,
+    platform: 'linux',
     server: { name: serverName, version: infoMap['Server Version'] || '', isPipeWire, defaultSource: infoMap['Default Source'], defaultSink: infoMap['Default Sink'], sampleSpec: infoMap['Default Sample Specification'] },
     sources,
     modules: relevantModules,
@@ -232,10 +233,33 @@ const RNNOISE_CANDIDATES = [
   '/usr/lib64/ladspa/librnnoise_ladspa.so',
   '/usr/local/lib/ladspa/librnnoise_ladspa.so',
 ];
+function ladspaDirs() {
+  const home = os.homedir();
+  const env = (process.env.LADSPA_PATH || '').split(':').filter(Boolean);
+  return [...new Set([...env, path.join(home, '.ladspa'), path.join(home, '.local/lib/ladspa'), '/usr/lib/ladspa', '/usr/lib/x86_64-linux-gnu/ladspa', '/usr/lib64/ladspa', '/usr/local/lib/ladspa', '/usr/local/lib64/ladspa', '/opt/ladspa'])];
+}
+function scanLadspa(re) {
+  for (const d of ladspaDirs()) {
+    let ents; try { ents = fs.readdirSync(d); } catch { continue; }
+    const f = ents.find((n) => re.test(n));
+    if (f) return path.join(d, f);
+  }
+  return null;
+}
 function findRnnoise() {
   if (process.env.RNNOISE_LADSPA && fs.existsSync(process.env.RNNOISE_LADSPA)) return process.env.RNNOISE_LADSPA;
-  const hit = RNNOISE_CANDIDATES.find((p) => fs.existsSync(p));
+  const hit = RNNOISE_CANDIDATES.find((p) => fs.existsSync(p)) || scanLadspa(/^librnnoise.*ladspa.*\.so$|^librnnoise_ladspa\.so$/i);
   if (hit) return hit;
+  // plugin path referenced by an old config that reset-audio.sh moved to ~/audio-backup-*
+  try {
+    for (const d of fs.readdirSync(os.homedir()).filter((n) => n.startsWith('audio-backup-'))) {
+      for (const f of walkFiles(path.join(os.homedir(), d), (n) => /\.conf|\.mic-dashboard-off$/.test(n))) {
+        const m = readSafe(f).match(/plugin\s*=\s*"?([^"\s}]*rnnoise[^"\s}]*\.so)/i);
+        const pth = m && m[1].replace(/^~/, os.homedir());
+        if (pth && fs.existsSync(pth)) return pth;
+      }
+    }
+  } catch {}
   // Reuse the plugin path from an existing config (e.g. the one behind "Mic (clean)")
   const offFiles = [path.join(os.homedir(), '.config/pipewire'), path.join(os.homedir(), '.config/wireplumber')]
     .flatMap((d) => walkFiles(d, (n) => n.endsWith('.mic-dashboard-off'))).map((p) => ({ path: p, content: readSafe(p) }));
@@ -247,7 +271,7 @@ function findRnnoise() {
 }
 
 const COMP_CANDIDATES = ['/usr/lib/ladspa/sc4m_1916.so', '/usr/lib/x86_64-linux-gnu/ladspa/sc4m_1916.so', '/usr/lib64/ladspa/sc4m_1916.so', '/usr/local/lib/ladspa/sc4m_1916.so', path.join(os.homedir(), '.ladspa/sc4m_1916.so')];
-const findComp = () => COMP_CANDIDATES.find((p) => fs.existsSync(p)) || null;
+const findComp = () => COMP_CANDIDATES.find((p) => fs.existsSync(p)) || scanLadspa(/^sc4m_1916\.so$/) || null;
 let compBroken = false; // set if the chain failed to start with the compressor
 
 let chainProc = null;      // pipewire -c child
@@ -267,6 +291,9 @@ async function cleanStatus(isPipeWire) {
       pwCli: await has('pw-cli'),
       rnnoisePath,
       compPath: compBroken ? null : findComp(),
+      compFound: findComp(),
+      compStatus: !findComp() ? 'missing' : compBroken ? 'failed' : 'ok',
+      ladspaDirs: ladspaDirs().filter((d) => fs.existsSync(d)),
       webrtc: true,
     },
     lastError,
@@ -426,6 +453,7 @@ async function livePipewireUpdate() {
   params.push(`"gain:Gain 1" ${Math.pow(10, Number(s.outputGainDb) / 20).toFixed(4)}`);
   if (s.limiter && !compBroken && findComp()) params.push(`"limiter:Threshold level (dB)" ${Number(s.limiterCeiling)}`);
   const r = await run('pw-cli', ['set-param', String(id), 'Props', `{ params = [ ${params.join(' ')} ] }`]);
+  if (process.env.MIC_DEBUG) console.log('[live]', id, params.join(' '), '→', r.code, r.err.trim());
   return r.ok && !/error/i.test(r.out + r.err);
 }
 
@@ -816,6 +844,7 @@ const routes = {
   },
 
   'POST /api/clean/start': async (body) => {
+    compBroken = false;
     if (body.settings) Object.assign(settings, body.settings);
     if (settings.master && !validName(settings.master)) throw new Error('اسم المايك المصدر غلط');
     if (settings.master === CLEAN_NODE) settings.master = '';
@@ -860,11 +889,128 @@ const routes = {
     if (restart) await restartPipeWire();
     return { ok: true, errors, items: await scanLegacy() };
   },
+  'POST /api/rnnoise/install': async () => {
+    if (findRnnoise()) return { ok: true, path: findRnnoise(), already: true };
+    const dir = path.join(os.homedir(), '.ladspa'); fs.mkdirSync(dir, { recursive: true });
+    const zip = path.join(os.tmpdir(), 'linux-rnnoise.zip');
+    const url = 'https://github.com/werman/noise-suppression-for-voice/releases/download/v1.10/linux-rnnoise.zip';
+    const dl = await run('curl', ['-fsSL', '-o', zip, url], { timeout: 120000 });
+    if (!dl.ok) throw new Error('مقدرتش أنزّل RNNoise (فيه نت؟): ' + dl.err.trim().slice(0, 160));
+    const py = `import zipfile,sys\nz=zipfile.ZipFile(sys.argv[1])\nn=[x for x in z.namelist() if x.endswith('ladspa/librnnoise_ladspa.so')][0]\nopen(sys.argv[2],'wb').write(z.read(n))`;
+    const ex = await run('python3', ['-c', py, zip, path.join(dir, 'librnnoise_ladspa.so')], { timeout: 30000 });
+    if (!ex.ok) throw new Error('فك الضغط فشل: ' + ex.err.trim().slice(0, 160));
+    return { ok: true, path: findRnnoise() };
+  },
   'POST /api/clean/autostart': async ({ on }) => { settings.autoStart = !!on; saveSettings(settings); return { ok: true, autoStart: settings.autoStart }; },
   'POST /api/clean/reset': async () => { settings = { ...structuredClone(DEFAULT_SETTINGS), master: settings.master, autoStart: settings.autoStart }; saveSettings(settings); return { ok: true, settings }; },
 };
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
+// ---------------------------------------------------------------- macOS mode
+// No PipeWire on the Mac: the dashboard page itself runs the audio engine
+// (public/engine-web.js → RNNoise WASM ×2, EQ, compressor, limiter) and plays the
+// result into BlackHole. The server only lists devices, sets the input volume,
+// and stores settings.
+const IS_MAC = (process.env.MIC_PLATFORM || process.platform) === 'darwin';
+
+async function macDevices() {
+  const sp = await run('system_profiler', ['SPAudioDataType', '-json'], { timeout: 15000 });
+  try { return JSON.parse(sp.out).SPAudioDataType?.[0]?._items || []; } catch { return []; }
+}
+async function macInputVolume() {
+  const r = await run('osascript', ['-e', 'input volume of (get volume settings)']);
+  const v = Number(r.out.trim());
+  return Number.isFinite(v) ? v : null;
+}
+async function macStatus() {
+  const items = await macDevices();
+  const vol = await macInputVolume();
+  const sources = items.filter((d) => Number(d.coreaudio_device_input) > 0).map((d, i) => {
+    const isDef = d.coreaudio_default_audio_input_device === 'spaudio_yes';
+    const tr = String(d.coreaudio_device_transport || '').replace('coreaudio_device_type_', '');
+    const isBH = /blackhole|mohamed/i.test(d._name);
+    const kind = isBH ? 'filter' : /virtual|aggregate/i.test(tr) ? 'virtual' : 'hardware';
+    const where = /usb/i.test(tr) ? 'مايك USB' : /built/i.test(tr) ? 'مايك الماك' : /bluetooth/i.test(tr) ? 'بلوتوث' : tr || 'جهاز';
+    return {
+      index: i, name: d._name, description: d._name, state: isDef ? 'RUNNING' : 'IDLE', mute: isDef && vol === 0,
+      volumePercent: isDef ? vol : null, volumeDb: isDef && vol ? (60 * Math.log10(vol / 100)).toFixed(1) : null,
+      sampleSpec: `${d.coreaudio_device_input}ch ${d.coreaudio_device_srate || ''}Hz`, activePort: '', driver: 'CoreAudio',
+      isDefault: isDef, recordedBy: [], props: {},
+      origin: {
+        kind, master: null,
+        label: kind === 'hardware' ? `هاردوير · ${where}` : isBH ? 'BlackHole (خرج Mic (Mohamed))' : 'مصدر وهمي',
+        detail: isBH ? 'ده المايك اللي تختاره في زوم/OBS — الصوت النضيف بيوصله من الداشبورد.' : isDef ? '' : 'على الماك الجين بيتظبط للمايك الافتراضي بس — دوس «خليه افتراضي» الأول.',
+      },
+    };
+  });
+  const def = sources.find((s) => s.isDefault);
+  return {
+    ok: true, platform: 'darwin',
+    server: { name: 'macOS · CoreAudio', version: '', isPipeWire: false, defaultSource: def?.name || '', defaultSink: '', sampleSpec: '' },
+    sources, modules: [],
+    clean: {
+      running: false, engine: 'browser', pid: null, echoModuleIndex: null, lastError: '', log: [],
+      capabilities: {
+        pipewire: false, pwCli: false, webrtc: false, browserEngine: true,
+        rnnoisePath: 'RNNoise WASM (جوه البراوزر)', compPath: 'Web Audio compressor', compFound: 'web', compStatus: 'ok', ladspaDirs: [],
+        blackhole: items.some((d) => /blackhole/i.test(d._name)), switchAudio: await has('SwitchAudioSource'),
+      },
+    },
+    settings, eqFreqs: EQ_FREQS,
+  };
+}
+const MAC_ROUTES = {
+  'GET /api/status': async () => macStatus(),
+  'GET /api/graph': async () => {
+    const st = await macStatus();
+    const hw = st.sources.find((s) => s.origin.kind === 'hardware' && s.isDefault) || st.sources.find((s) => s.origin.kind === 'hardware');
+    const bh = st.sources.find((s) => /blackhole|mohamed/i.test(s.name));
+    const chain = [
+      { id: 2, name: bh?.name || 'BlackHole 2ch', label: bh ? 'Mic (Mohamed) ← ' + bh.name : 'BlackHole (مش متسطب)', mediaClass: 'Audio/Source', api: '', product: '' },
+      { id: 1, name: 'browser', label: 'التنضيف جوه الداشبورد (RNNoise ×2 · EQ · ضاغط · ليميتر)', mediaClass: 'web', api: '', product: '' },
+      { id: 0, name: hw?.name || '', label: hw?.name || 'المايك', mediaClass: 'Audio/Source', api: 'coreaudio', product: '' },
+    ];
+    return { ok: true, chains: [{ id: 2, name: bh?.name || 'blackhole', label: 'Mic (Mohamed)', chain }], controllable: [], note: 'على الماك: الفلتر شغال جوه صفحة الداشبورد (لازم تفضل مفتوحة) وبيطلّع على BlackHole.' };
+  },
+  'GET /api/configs': async () => ({ ok: true, files: [], services: '' }),
+  'GET /api/legacy': async () => ({ ok: true, items: [], autoStart: !!settings.autoStart }),
+  'GET /api/raw': async () => {
+    const sp = await run('system_profiler', ['SPAudioDataType'], { timeout: 15000 });
+    const v = await run('osascript', ['-e', 'get volume settings']);
+    return { 'system_profiler SPAudioDataType': sp.out || sp.err, 'osascript get volume settings': v.out || v.err, 'SwitchAudioSource -a': (await run('SwitchAudioSource', ['-a', '-t', 'input'])).out || 'SwitchAudioSource مش متسطب (brew install switchaudio-osx)' };
+  },
+  'POST /api/source/volume': async ({ name, percent }) => {
+    const st = await macStatus();
+    const src = st.sources.find((s) => s.name === name);
+    if (!src?.isDefault) throw new Error('على الماك الجين بيتغير للمايك الافتراضي بس — دوس «خليه افتراضي» على المايك ده الأول');
+    const p = Math.max(0, Math.min(100, Math.round(Number(percent))));
+    const r = await run('osascript', ['-e', `set volume input volume ${p}`]);
+    if (!r.ok) throw new Error(r.err);
+    return { ok: true, capped: Number(percent) > 100 };
+  },
+  'POST /api/source/mute': async ({ name, mute }) => {
+    const st = await macStatus();
+    if (!st.sources.find((s) => s.name === name)?.isDefault) throw new Error('الكتم على الماك للمايك الافتراضي بس');
+    if (mute) { settings.macVolBeforeMute = (await macInputVolume()) ?? 75; saveSettings(settings); }
+    const r = await run('osascript', ['-e', `set volume input volume ${mute ? 0 : settings.macVolBeforeMute ?? 75}`]);
+    if (!r.ok) throw new Error(r.err);
+    return { ok: true };
+  },
+  'POST /api/source/default': async ({ name }) => {
+    if (typeof name !== 'string' || name.length > 200) throw new Error('اسم غلط');
+    if (!(await has('SwitchAudioSource'))) throw new Error('عشان أغيّر المايك الافتراضي محتاج: brew install switchaudio-osx — أو غيّره من System Settings ← Sound ← Input');
+    const r = await run('SwitchAudioSource', ['-t', 'input', '-s', name]);
+    if (!r.ok) throw new Error(r.err || r.out);
+    return { ok: true };
+  },
+  'POST /api/clean/start': async (body) => { if (body.settings) Object.assign(settings, body.settings); saveSettings(settings); return { ok: true, browser: true }; },
+  'POST /api/clean/update': async (body) => { if (body.settings) Object.assign(settings, body.settings); saveSettings(settings); return { ok: true, applied: 'live' }; },
+  'POST /api/clean/stop': async () => ({ ok: true, browser: true }),
+  'POST /api/rnnoise/install': async () => ({ ok: true, already: true, path: 'wasm' }),
+  'POST /api/legacy/disable-all': async () => ({ ok: true, errors: [], items: [] }),
+};
+if (IS_MAC) Object.assign(routes, MAC_ROUTES);
+
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm', '.ico': 'image/x-icon' };
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const key = `${req.method} ${url.pathname}`;
@@ -884,9 +1030,9 @@ const server = http.createServer(async (req, res) => {
 });
 
 if (require.main === module) server.listen(PORT, HOST, () => {
-  console.log(`\n  🎙  Mic (Mohamed) Dashboard → http://localhost:${PORT}\n`);
+  console.log(`\n  🎙  Mic (Mohamed) Dashboard → http://localhost:${PORT}${IS_MAC ? '   (وضع الماك: التنضيف جوه الصفحة → BlackHole)' : ''}\n`);
   console.log('  Ctrl+C يقفل السيرفر ويشيل المايك الوهمي Mic (Mohamed).\n');
-  if (settings.autoStart) {
+  if (settings.autoStart && !IS_MAC) {
     setTimeout(async () => {
       const st = await getStatus();
       const ok = settings.engine === 'pipewire' ? await startPipewireChain() : await startWebrtc(st.server?.isPipeWire);

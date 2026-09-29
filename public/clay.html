@@ -3,7 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>لوحة تحكم المايك</title>
+<title>Mic (Mohamed)</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#b7a2ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mic (Mohamed)">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎙</text></svg>">
 <style>
 /* ============ Claymorphism tokens ============ */
@@ -825,17 +831,43 @@ async function openStream(deviceId) {
   return navigator.mediaDevices.getUserMedia({ audio: {
     deviceId: deviceId ? { exact: deviceId } : undefined,
     echoCancellation: $('bEC').checked, noiseSuppression: $('bNS').checked, autoGainControl: $('bAGC').checked,
-    channelCount: 1, sampleRate: 48000, latency: 0,
-  } });
+    channelCount: { ideal: 1 },
+  } }).catch((e) => {
+    // saved device id no longer valid (e.g. after reset-audio.sh) → fall back to the default mic
+    if (deviceId && (e.name === 'OverconstrainedError' || e.name === 'NotFoundError')) return openStream('');
+    throw e;
+  });
+}
+function micError(e) {
+  const m = {
+    NotAllowedError: 'البراوزر رافض يوصل للمايك. دوس على أيقونة القفل 🔒 جنب العنوان فوق ← الميكروفون ← سماح (Allow)، وبعدين دوس «ابدأ الاستماع» تاني.',
+    SecurityError: 'البراوزر رافض يوصل للمايك. افتح الداشبورد على http://localhost:4747 بالظبط، مش بالـ IP.',
+    NotFoundError: 'البراوزر مش لاقي أي مايك. اتأكد إن مايك الـ USB متوصل، ولو لسه، شغّل reset-audio.sh.',
+    NotReadableError: 'المايك مشغول أو نظام الصوت واقف. اقفل أي برنامج تاني بيستخدم المايك، أو شغّل reset-audio.sh.',
+    AbortError: 'فتح المايك اتلغى. جرب تاني.',
+  }[e?.name];
+  return new Error(m || ('مشكلة في المايك: ' + (e?.message || e)));
+}
+function showMonErr(msg) {
+  let el = document.getElementById('monErr');
+  if (!el) { el = document.createElement('div'); el.id = 'monErr'; el.className = 'status err'; el.style.marginTop = '10px'; $('micBtn').closest('.row').after(el); }
+  el.innerHTML = msg ? '⚠ ' + msg : ''; el.style.display = msg ? '' : 'none';
 }
 async function startAudio() {
-  ctx = new AudioContext({ latencyHint: 'interactive', sampleRate: 48000 });
+  showMonErr('');
+  // 1) Ask for permission FIRST — before that, the browser hides device ids/names and nothing can open
+  try { const probe = await navigator.mediaDevices.getUserMedia({ audio: true }); probe.getTracks().forEach((t) => t.stop()); }
+  catch (e) { throw micError(e); }
+  listDevices._init = false; // re-pick A (raw USB) / B (Mic (Mohamed)) now that names are visible
+  ctx = new AudioContext({ latencyHint: 'interactive' }); // no forced sample rate (Firefox refuses mismatched rates)
+  if (ctx.state === 'suspended') await ctx.resume();
   analyser = ctx.createAnalyser(); analyser.fftSize = FFT; analyser.smoothingTimeConstant = 0.55;
   monGain = ctx.createGain(); monGain.gain.value = 0;
   recDest = ctx.createMediaStreamDestination();
   analyser.connect(monGain); monGain.connect(ctx.destination); analyser.connect(recDest);
   await listDevices();
   await connectSides();
+  if (!Object.keys(chains).length) { const err = connectSides.lastError; stopAudio(); throw err ? micError(err) : new Error('مقدرتش أفتح أي مايك. اختار مايك في A.'); }
   $('ctxInfo').textContent = `${ctx.sampleRate} Hz · ~${Math.round((ctx.baseLatency + (ctx.outputLatency || 0)) * 1000)} ms تأخير`;
   running = true; $('micBtn').textContent = '■ وقّف الاستماع'; $('micBtn').classList.replace('primary', 'danger');
   applyMonitor(); requestAnimationFrame(draw);
@@ -844,12 +876,12 @@ async function connectSides() {
   for (const side of ['A', 'B']) {
     streams[side]?.getTracks().forEach((t) => t.stop()); chains[side]?.src.disconnect();
     const id = $('dev' + side).value;
-    if (!id) continue;
+    if (!id && side === 'B') continue; // A falls back to the default mic
     try {
       const st = await openStream(id); streams[side] = st;
       const src = ctx.createMediaStreamSource(st), g = ctx.createGain();
       g.gain.value = side === active ? 1 : 0; src.connect(g); g.connect(analyser); chains[side] = { src, g };
-    } catch (e) { toast(`مقدرتش أفتح ${side}: ${e.message}`, 4000); }
+    } catch (e) { connectSides.lastError = e; showMonErr(`مقدرتش أفتح ${side}: ${micError(e).message}`); }
   }
   await listDevices();
 }
@@ -864,7 +896,7 @@ function setActive(side) {
   stats.hist = [];
 }
 function applyMonitor() { if (monGain) monGain.gain.setTargetAtTime($('monitorOn').checked ? Number($('monVol').value) : 0, ctx.currentTime, 0.02); }
-$('micBtn').onclick = () => (running ? stopAudio() : startAudio().catch((e) => toast('مشكلة في المايك: ' + e.message, 5000)));
+$('micBtn').onclick = () => (running ? stopAudio() : startAudio().catch((e) => { showMonErr(e.message); toast('⚠ ' + e.message, 6000); }));
 $('abA').onclick = () => setActive('A'); $('abB').onclick = () => setActive('B');
 $('monitorOn').onchange = applyMonitor; $('monVol').oninput = applyMonitor;
 ['devA', 'devB', 'bNS', 'bEC', 'bAGC'].forEach((id) => $(id).addEventListener('change', () => ctx && connectSides()));
@@ -1243,7 +1275,10 @@ setInterval(() => $('autoRefresh').checked && refresh(), 3000);
     $$('dnR2Fields').classList.toggle('dn-off', !$$('dnR2').checked);
     $$('dnCFields').classList.toggle('dn-off', !$$('dnC').checked || !hasComp());
     $$('dnLc').classList.toggle('dn-off', !$$('dnL').checked || !hasComp()); $$('dnLimBox').classList.toggle('dn-off', !hasComp());
-    $$('dnCompMissing').innerHTML = hasComp() ? '' : '<div class="status">⚠ الضاغط محتاج إضافة صغيرة. نفّذ في التيرمنال: <span class="mono">sudo apt install swh-plugins</span>، وبعدين أعد تشغيل السيرفر. من غيرها المايك شغال عادي، بس من غير ضغط.</div>';
+    const cap = (() => { try { return STATUS?.clean?.capabilities || {}; } catch { return {}; } })();
+    $$('dnCompMissing').innerHTML = hasComp() ? `<div class="small muted">✓ الضاغط متسطب: <span class="mono">${cap.compPath}</span></div>`
+      : cap.compStatus === 'failed' ? `<div class="status">⚠ الضاغط متسطب (<span class="mono">${cap.compFound}</span>)، بس المايك مشتغلش بيه المرة اللي فاتت، فاشتغل من غيره. دوس «▶ شغّل» تاني وأنا هجرّبه من الأول، ولو فضل كده ابعتلي «سجل المحرك» من تاب متقدم.</div>`
+      : `<div class="status">⚠ مش لاقي ملف الضاغط <span class="mono">sc4m_1916.so</span>. دوّرت في: <span class="mono">${(cap.ladspaDirs || []).join(' · ') || '—'}</span>. اتأكد إن التسطيب خلص: <span class="mono">sudo apt install swh-plugins</span>، وبعدين <span class="mono">ls /usr/lib/ladspa | grep sc4m</span>. لو السيرفر شغال من قبل التسطيب، أعد تشغيله.</div>`;
     const p = s.profile || 'custom';
     $$('dnProfile').textContent = PNAME[p] || '✏️ مخصص';
     document.querySelectorAll('.dn-scene').forEach((b) => b.classList.toggle('on', b.dataset.scene === p));
@@ -1471,5 +1506,7 @@ setInterval(() => $('autoRefresh').checked && refresh(), 3000);
   }
 })();
 </script>
+<script src="/engine-web.js"></script>
+<script src="/pwa.js"></script>
 </body>
 </html>
