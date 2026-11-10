@@ -14,7 +14,10 @@ const { execFile, spawn } = require('child_process');
 const PORT = Number(process.env.PORT || 4747);
 const HOST = process.env.HOST || '127.0.0.1';
 const PUBLIC = path.join(__dirname, 'public');
-const STATE_DIR = path.join(os.homedir(), '.config', 'mic-clean-dashboard');
+// MIC_PLATFORM=darwin|win32|linux overrides detection (handy for testing the UI of another OS)
+const PLATFORM = process.env.MIC_PLATFORM || process.platform;
+const IS_WIN_HOST = process.platform === 'win32';
+const STATE_DIR = IS_WIN_HOST && process.env.APPDATA ? path.join(process.env.APPDATA, 'mic-clean-dashboard') : path.join(os.homedir(), '.config', 'mic-clean-dashboard');
 const STATE_FILE = path.join(STATE_DIR, 'settings.json');
 const CONF_FILE = path.join(STATE_DIR, 'mic-clean-chain.conf');
 const CLEAN_NODE = 'mic_mohamed';          // source name we create
@@ -29,7 +32,18 @@ function run(cmd, args, { timeout = 5000 } = {}) {
     });
   });
 }
-async function has(cmd) { return (await run('sh', ['-c', `command -v ${cmd}`])).ok; }
+// Looks a program up on PATH without a shell (works on Linux, macOS and Windows).
+function which(cmd) {
+  const exts = IS_WIN_HOST ? (process.env.PATHEXT || '.EXE;.CMD;.BAT;.COM').split(';').filter(Boolean) : [''];
+  for (const dir of (process.env.PATH || '').split(path.delimiter).filter(Boolean)) {
+    for (const ext of exts) {
+      const f = path.join(dir, cmd + ext);
+      try { fs.accessSync(f, IS_WIN_HOST ? fs.constants.F_OK : fs.constants.X_OK); if (fs.statSync(f).isFile()) return f; } catch {}
+    }
+  }
+  return null;
+}
+async function has(cmd) { return !!which(cmd); }
 
 const EQ_FREQS = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 // Default = "Podcast" profile: double RNNoise (stage 1 gates, stage 2 polishes),
@@ -236,7 +250,7 @@ const RNNOISE_CANDIDATES = [
 function ladspaDirs() {
   const home = os.homedir();
   const env = (process.env.LADSPA_PATH || '').split(':').filter(Boolean);
-  return [...new Set([...env, path.join(home, '.ladspa'), path.join(home, '.local/lib/ladspa'), '/usr/lib/ladspa', '/usr/lib/x86_64-linux-gnu/ladspa', '/usr/lib64/ladspa', '/usr/local/lib/ladspa', '/usr/local/lib64/ladspa', '/opt/ladspa'])];
+  return [...new Set([...env, path.join(home, '.ladspa'), path.join(home, '.local/lib/ladspa'), '/usr/lib/ladspa', '/usr/lib/x86_64-linux-gnu/ladspa', '/usr/lib/aarch64-linux-gnu/ladspa', '/usr/lib64/ladspa', '/usr/local/lib/ladspa', '/usr/local/lib64/ladspa', '/opt/ladspa'])];
 }
 function scanLadspa(re) {
   for (const d of ladspaDirs()) {
@@ -270,19 +284,28 @@ function findRnnoise() {
   return null;
 }
 
-const COMP_CANDIDATES = ['/usr/lib/ladspa/sc4m_1916.so', '/usr/lib/x86_64-linux-gnu/ladspa/sc4m_1916.so', '/usr/lib64/ladspa/sc4m_1916.so', '/usr/local/lib/ladspa/sc4m_1916.so', path.join(os.homedir(), '.ladspa/sc4m_1916.so')];
+const COMP_CANDIDATES = ['/usr/lib/ladspa/sc4m_1916.so', '/usr/lib/x86_64-linux-gnu/ladspa/sc4m_1916.so', '/usr/lib/aarch64-linux-gnu/ladspa/sc4m_1916.so', '/usr/lib64/ladspa/sc4m_1916.so', '/usr/local/lib/ladspa/sc4m_1916.so', path.join(os.homedir(), '.ladspa/sc4m_1916.so')];
 const findComp = () => COMP_CANDIDATES.find((p) => fs.existsSync(p)) || scanLadspa(/^sc4m_1916\.so$/) || null;
 let compBroken = false; // set if the chain failed to start with the compressor
 let compInstall = { running: false, log: '', ok: null };
+// swh-plugins has a different package name per distro
+function compPkg() {
+  if (which('apt-get')) return { pm: 'apt-get', pkg: 'swh-plugins', args: ['install', '-y', 'swh-plugins'], cmd: 'sudo apt install swh-plugins' };
+  if (which('dnf')) return { pm: 'dnf', pkg: 'ladspa-swh-plugins', args: ['install', '-y', 'ladspa-swh-plugins'], cmd: 'sudo dnf install ladspa-swh-plugins' };
+  if (which('pacman')) return { pm: 'pacman', pkg: 'swh-plugins', args: ['-S', '--noconfirm', 'swh-plugins'], cmd: 'sudo pacman -S swh-plugins' };
+  if (which('zypper')) return { pm: 'zypper', pkg: 'ladspa-swh-plugins', args: ['--non-interactive', 'install', 'ladspa-swh-plugins'], cmd: 'sudo zypper install ladspa-swh-plugins' };
+  return null;
+}
 async function compDiagnose() {
   const d = { searched: ladspaDirs().map((p) => ({ p, exists: fs.existsSync(p) })) };
-  const q = await run('dpkg-query', ['-W', '-f=${Package} ${Status}\\n', 'swh-plugins', 'swh-lv2']);
+  const q = which('dpkg-query') ? await run('dpkg-query', ['-W', '-f=${Package} ${Status}\\n', 'swh-plugins', 'swh-lv2']) : { out: '' };
   const st = (name) => (q.out.split('\n').find((l) => l.startsWith(name + ' ')) || '').includes('install ok installed');
   d.swhPlugins = st('swh-plugins');
   d.swhLv2 = st('swh-lv2');
   // sandboxed terminal (Flatpak VS Code, Snap...) hides /usr of the real system
   d.sandbox = fs.existsSync('/.flatpak-info') ? 'flatpak' : process.env.SNAP ? 'snap' : fs.existsSync('/run/.containerenv') || fs.existsSync('/.dockerenv') ? 'container' : '';
   d.pkexec = await has('pkexec');
+  const pk = compPkg(); d.installCmd = pk ? pk.cmd : 'sudo apt install swh-plugins'; d.pm = pk ? pk.pm : '';
   d.install = compInstall;
   return d;
 }
@@ -906,10 +929,11 @@ const routes = {
   'POST /api/comp/install': async () => {
     if (findComp()) return { ok: true, already: true, path: findComp() };
     if (compInstall.running) return { ok: true, running: true };
-    if (!(await has('pkexec'))) throw new Error('نفّذ في التيرمنال:  sudo apt install swh-plugins');
+    const pk = compPkg();
+    if (!pk || !(await has('pkexec'))) throw new Error('نفّذ في التيرمنال:  ' + (pk ? pk.cmd : 'sudo apt install swh-plugins'));
     compInstall = { running: true, log: '', ok: null };
-    // runs in the background: pkexec shows Ubuntu's password dialog
-    run('pkexec', ['apt-get', 'install', '-y', 'swh-plugins'], { timeout: 600000 }).then((r) => {
+    // runs in the background: pkexec shows the system password dialog
+    run('pkexec', [pk.pm, ...pk.args], { timeout: 600000 }).then((r) => {
       compInstall = { running: false, ok: r.ok && !!findComp(), log: (r.out + '\n' + r.err).trim().split('\n').slice(-12).join('\n') };
       compBroken = false;
     });
@@ -917,13 +941,15 @@ const routes = {
   },
   'POST /api/rnnoise/install': async () => {
     if (findRnnoise()) return { ok: true, path: findRnnoise(), already: true };
+    if (process.arch !== 'x64') throw new Error(`النسخة الجاهزة من RNNoise لـ x86_64 بس، وجهازك ${process.arch}. سطّبها من مدير الحزم (مثلًا: sudo apt install noise-suppression-for-voice) أو اعمل build من github.com/werman/noise-suppression-for-voice`);
     const dir = path.join(os.homedir(), '.ladspa'); fs.mkdirSync(dir, { recursive: true });
     const zip = path.join(os.tmpdir(), 'linux-rnnoise.zip');
     const url = 'https://github.com/werman/noise-suppression-for-voice/releases/download/v1.10/linux-rnnoise.zip';
     const dl = await run('curl', ['-fsSL', '-o', zip, url], { timeout: 120000 });
     if (!dl.ok) throw new Error('مقدرتش أنزّل RNNoise (فيه نت؟): ' + dl.err.trim().slice(0, 160));
     const py = `import zipfile,sys\nz=zipfile.ZipFile(sys.argv[1])\nn=[x for x in z.namelist() if x.endswith('ladspa/librnnoise_ladspa.so')][0]\nopen(sys.argv[2],'wb').write(z.read(n))`;
-    const ex = await run('python3', ['-c', py, zip, path.join(dir, 'librnnoise_ladspa.so')], { timeout: 30000 });
+    let ex = await run('python3', ['-c', py, zip, path.join(dir, 'librnnoise_ladspa.so')], { timeout: 30000 });
+    if (!ex.ok && which('unzip')) ex = await run('unzip', ['-jo', zip, '*/ladspa/librnnoise_ladspa.so', '-d', dir], { timeout: 30000 });
     if (!ex.ok) throw new Error('فك الضغط فشل: ' + ex.err.trim().slice(0, 160));
     return { ok: true, path: findRnnoise() };
   },
@@ -936,7 +962,11 @@ const routes = {
 // (public/engine-web.js → RNNoise WASM ×2, EQ, compressor, limiter) and plays the
 // result into BlackHole. The server only lists devices, sets the input volume,
 // and stores settings.
-const IS_MAC = (process.env.MIC_PLATFORM || process.platform) === 'darwin';
+const IS_MAC = PLATFORM === 'darwin';
+const IS_WIN = PLATFORM === 'win32';
+// Linux without pactl/PipeWire (or MIC_ENGINE=web): same in-browser engine as the Mac/Windows
+const LINUX_WEB = !IS_MAC && !IS_WIN && (process.env.MIC_ENGINE === 'web' || !which('pactl'));
+const BROWSER_MODE = IS_MAC || IS_WIN || LINUX_WEB;
 
 async function macDevices() {
   const sp = await run('system_profiler', ['SPAudioDataType', '-json'], { timeout: 15000 });
@@ -1032,9 +1062,77 @@ const MAC_ROUTES = {
   'POST /api/clean/update': async (body) => { if (body.settings) Object.assign(settings, body.settings); saveSettings(settings); return { ok: true, applied: 'live' }; },
   'POST /api/clean/stop': async () => ({ ok: true, browser: true }),
   'POST /api/rnnoise/install': async () => ({ ok: true, already: true, path: 'wasm' }),
+  'POST /api/comp/install': async () => ({ ok: true, already: true, path: 'web' }),
   'POST /api/legacy/disable-all': async () => ({ ok: true, errors: [], items: [] }),
+  'POST /api/clean/autostart': async ({ on }) => { settings.autoStart = !!on; saveSettings(settings); return { ok: true, autoStart: settings.autoStart }; },
+};
+
+// ---------------------------------------------------------------- Windows / generic browser mode
+// Same idea as the Mac: the page cleans the audio and plays it into a virtual
+// cable (VB-CABLE: apps then record from "CABLE Output"). The server lists the
+// recording devices through PowerShell; volume and default device are changed in
+// Windows' own Sound settings.
+const VCABLE_RE = /cable (output|input)|vb-audio|voicemeeter|blackhole|mohamed/i;
+async function winDevices() {
+  const ps = "Get-CimInstance Win32_PnPEntity -Filter \"PNPClass='AudioEndpoint'\" | Select-Object Name,Status | ConvertTo-Json -Compress";
+  const r = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], { timeout: 15000 });
+  try { const j = JSON.parse(r.out || '[]'); return (Array.isArray(j) ? j : [j]).filter((d) => d && d.Name); } catch { return []; }
+}
+const isCaptureName = (n) => /microphone|mic\b|mikrofon|micro|line in|input|headset|array|cable output|voicemeeter out|aux/i.test(n) && !/speaker|headphone|cable input|voicemeeter in|digital output|hdmi|display audio|realtek digital/i.test(n);
+function browserSource(name, i, { isDef = false, extra = '' } = {}) {
+  const isVirt = VCABLE_RE.test(name);
+  const where = /usb/i.test(name) ? 'مايك USB' : /bluetooth|hands-free|headset/i.test(name) ? 'سماعة / بلوتوث' : /array|realtek|built|internal/i.test(name) ? 'مايك مدمج' : 'جهاز';
+  return {
+    index: i, name, description: name, state: isDef ? 'RUNNING' : 'IDLE', mute: false, volumePercent: null, volumeDb: null,
+    sampleSpec: '', activePort: '', driver: IS_WIN ? 'WASAPI' : 'Browser', isDefault: isDef, recordedBy: [], props: {},
+    origin: {
+      kind: isVirt ? 'filter' : 'hardware', master: null,
+      label: isVirt ? 'كابل وهمي (خرج Mic (Mohamed))' : `هاردوير · ${where}`,
+      detail: isVirt ? 'ده المايك اللي تختاره في زوم/OBS/ديسكورد — الصوت النضيف بيوصله من الداشبورد.' : extra,
+    },
+  };
+}
+async function webStatus() {
+  let sources = [];
+  if (IS_WIN) sources = (await winDevices()).filter((d) => isCaptureName(d.Name)).map((d, i) => browserSource(d.Name, i, { extra: d.Status && d.Status !== 'OK' ? `الحالة: ${d.Status}` : '' }));
+  const vcable = sources.some((s) => /cable output|voicemeeter/i.test(s.name));
+  return {
+    ok: true, platform: IS_WIN ? 'win32' : 'web',
+    server: { name: IS_WIN ? 'Windows · WASAPI' : 'Browser audio (من غير PipeWire)', version: '', isPipeWire: false, defaultSource: '', defaultSink: '', sampleSpec: '' },
+    sources, modules: [],
+    clean: {
+      running: false, engine: 'browser', pid: null, echoModuleIndex: null, lastError: '', log: [],
+      capabilities: {
+        pipewire: false, pwCli: false, webrtc: false, browserEngine: true,
+        rnnoisePath: 'RNNoise WASM (جوه البراوزر)', compPath: 'Web Audio compressor', compFound: 'web', compStatus: 'ok', ladspaDirs: [],
+        vcable, blackhole: vcable,
+      },
+    },
+    settings, eqFreqs: EQ_FREQS,
+  };
+}
+const SOUND_SETTINGS_MSG = IS_WIN ? 'على ويندوز غيّر ده من Settings ← System ← Sound ← Input (أو اكتب mmsys.cpl في Run).' : 'غيّر ده من إعدادات الصوت بتاعة النظام.';
+const WEB_ROUTES = {
+  ...MAC_ROUTES,
+  'GET /api/status': async () => webStatus(),
+  'GET /api/graph': async () => {
+    const st = await webStatus();
+    const vc = st.sources.find((s) => /cable output|voicemeeter/i.test(s.name));
+    const hw = st.sources.find((s) => s.origin.kind === 'hardware');
+    const chain = [
+      { id: 2, name: vc?.name || 'CABLE Output', label: vc ? 'Mic (Mohamed) ← ' + vc.name : (IS_WIN ? 'VB-CABLE (مش متسطب)' : 'الخرج'), mediaClass: 'Audio/Source', api: '', product: '' },
+      { id: 1, name: 'browser', label: 'التنضيف جوه الداشبورد (RNNoise ×2 · EQ · ضاغط · ليميتر)', mediaClass: 'web', api: '', product: '' },
+      { id: 0, name: hw?.name || '', label: hw?.name || 'المايك', mediaClass: 'Audio/Source', api: IS_WIN ? 'wasapi' : 'browser', product: '' },
+    ];
+    return { ok: true, chains: [{ id: 2, name: 'vcable', label: 'Mic (Mohamed)', chain }], controllable: [], note: 'الفلتر شغال جوه صفحة الداشبورد (لازم تفضل مفتوحة) وبيطلّع على الكابل الوهمي.' };
+  },
+  'GET /api/raw': async () => IS_WIN ? { 'Win32_PnPEntity AudioEndpoint': JSON.stringify(await winDevices(), null, 2) } : { info: 'وضع البراوزر: مفيش pactl على الجهاز ده.' },
+  'POST /api/source/volume': async () => { throw new Error('الجين: ' + SOUND_SETTINGS_MSG + ' أو استخدم «تعلية الدخل» في الداشبورد.'); },
+  'POST /api/source/mute': async () => { throw new Error('الكتم: ' + SOUND_SETTINGS_MSG); },
+  'POST /api/source/default': async () => { throw new Error('المايك الافتراضي: ' + SOUND_SETTINGS_MSG); },
 };
 if (IS_MAC) Object.assign(routes, MAC_ROUTES);
+else if (BROWSER_MODE) Object.assign(routes, WEB_ROUTES);
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm', '.ico': 'image/x-icon' };
 const server = http.createServer(async (req, res) => {
@@ -1056,9 +1154,9 @@ const server = http.createServer(async (req, res) => {
 });
 
 if (require.main === module) server.listen(PORT, HOST, () => {
-  console.log(`\n  🎙  Mic (Mohamed) Dashboard → http://localhost:${PORT}${IS_MAC ? '   (وضع الماك: التنضيف جوه الصفحة → BlackHole)' : ''}\n`);
+  console.log(`\n  🎙  Mic (Mohamed) Dashboard → http://localhost:${PORT}${IS_MAC ? '   (وضع الماك: التنضيف جوه الصفحة → BlackHole)' : IS_WIN ? '   (وضع ويندوز: التنضيف جوه الصفحة → VB-CABLE)' : LINUX_WEB ? '   (وضع البراوزر: مفيش pactl، التنضيف جوه الصفحة)' : ''}\n`);
   console.log('  Ctrl+C يقفل السيرفر ويشيل المايك الوهمي Mic (Mohamed).\n');
-  if (settings.autoStart && !IS_MAC) {
+  if (settings.autoStart && !BROWSER_MODE) {
     setTimeout(async () => {
       const st = await getStatus();
       const ok = settings.engine === 'pipewire' ? await startPipewireChain() : await startWebrtc(st.server?.isPipeWire);
@@ -1071,7 +1169,7 @@ let exiting = false;
 async function shutdown() {
   if (exiting) return; exiting = true;
   console.log('\nبقفل Mic (Mohamed)…');
-  await stopAll();
+  if (!BROWSER_MODE) await stopAll();
   process.exit(0);
 }
 if (require.main === module) { process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown); }

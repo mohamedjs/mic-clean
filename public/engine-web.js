@@ -1,10 +1,10 @@
-/* Mic (Mohamed) — in-browser audio engine (used on macOS; optional on Linux)
+/* Mic (Mohamed) — in-browser audio engine (macOS, Windows, and Linux without PipeWire)
  *
  * mic → input gain → high-pass → RNNoise ① → RNNoise ② → 10-band EQ → compressor
  *     → make-up → output gain → limiter → output device (BlackHole on Mac)
  *
- * Other apps (Zoom/OBS/Meet) then pick "BlackHole 2ch" (or the "Mic (Mohamed)"
- * aggregate you make in Audio MIDI Setup) as their microphone.
+ * Other apps (Zoom/OBS/Meet) then pick the virtual cable as their microphone:
+ * "BlackHole 2ch" on the Mac, "CABLE Output (VB-Audio Virtual Cable)" on Windows.
  * Settings are the same object the dashboard already edits (global SETTINGS).
  */
 (() => {
@@ -26,9 +26,10 @@
     n.makeup = ctx.createGain();
     n.out = ctx.createGain();
     n.limiter = ctx.createDynamicsCompressor();
+    n.limTrim = ctx.createGain(); // cancels the limiter's built-in make-up gain
     n.clip = ctx.createWaveShaper(); n.clip.oversample = '4x'; // hard safety ceiling after the limiter
     n.output = ctx.createGain(); // final node
-    const chain = [n.input, n.hp, n.rn1, n.rn2, ...n.eq, n.comp, n.makeup, n.out, n.limiter, n.clip, n.output];
+    const chain = [n.input, n.hp, n.rn1, n.rn2, ...n.eq, n.comp, n.makeup, n.out, n.limiter, n.limTrim, n.clip, n.output];
     for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
     n.vad = [0, 0];
     n.rn1.port.onmessage = (e) => { n.vad[0] = e.data.vad; n.gate1 = e.data.open; };
@@ -38,6 +39,7 @@
     return n;
   }
   const db = (d) => Math.pow(10, (Number(d) || 0) / 20);
+  const autoMakeup = (T, R) => -0.6 * T * (1 - 1 / R); // dB the browser adds by itself (T ≤ 0)
   function apply(ctx, n, s) {
     const t = ctx.currentTime, set = (p, v) => p.setTargetAtTime(v, t, 0.02);
     set(n.input.gain, db(s.webInputGainDb || 0));
@@ -52,13 +54,17 @@
       set(n.comp.attack, Math.max(0, Number(s.compAttack) / 1000));
       set(n.comp.release, Math.max(0.01, Number(s.compRelease) / 1000));
       set(n.comp.knee, 6);
-      set(n.makeup.gain, db(s.compMakeup));
+      // Web Audio's compressor adds its own make-up gain ≈ 0.6·|T|·(1−1/R) dB (spec "makeup gain").
+      // Take it back out so the numbers sound the same as the Linux (sc4m) chain.
+      const T = Math.max(-100, Math.min(0, Number(s.compThreshold))), R = Math.max(1, Math.min(20, Number(s.compRatio)));
+      set(n.makeup.gain, db(Number(s.compMakeup) - autoMakeup(T, R)));
     } else { set(n.comp.threshold, 0); set(n.comp.ratio, 1); set(n.comp.knee, 0); set(n.makeup.gain, 1); }
     set(n.out.gain, db(s.outputGainDb));
     if (s.limiter !== false) {
       set(n.limiter.threshold, Math.min(0, Number(s.limiterCeiling ?? -2))); set(n.limiter.ratio, 20);
       set(n.limiter.attack, 0.001); set(n.limiter.release, 0.06); set(n.limiter.knee, 0);
-    } else { set(n.limiter.threshold, 0); set(n.limiter.ratio, 1); set(n.limiter.knee, 0); }
+      set(n.limTrim.gain, db(-autoMakeup(Math.min(0, Number(s.limiterCeiling ?? -2)), 20)));
+    } else { set(n.limiter.threshold, 0); set(n.limiter.ratio, 1); set(n.limiter.knee, 0); set(n.limTrim.gain, 1); }
     // soft-knee clipper: linear up to 80% of the ceiling, then bends smoothly into it — never above
     const ceil = s.limiter !== false ? db(Math.min(-0.1, Number(s.limiterCeiling ?? -2))) : 1;
     if (n.clipCeil !== ceil) {
@@ -83,23 +89,35 @@
     catch (e) { throw new Error(e.name === 'NotAllowedError' ? 'البراوزر رافض المايك. اسمح بالميكروفون من أيقونة القفل 🔒 جنب العنوان.' : 'مقدرتش أفتح المايك: ' + e.message); }
     const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' });
     E.ctx = ctx;
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: {
-      deviceId: inputId ? { exact: inputId } : undefined, channelCount: { ideal: 1 },
-      echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    // 'mix' = mono downmix; 'L'/'R' = one input of a 2-channel interface (XLR mic on input 1 or 2)
+    const ch = s.webInputChannel === 'L' || s.webInputChannel === 'R' ? s.webInputChannel : 'mix';
+    const audio = { channelCount: { ideal: ch === 'mix' ? 1 : 2 }, echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+    let stream; E.fellBack = false;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { ...audio, deviceId: inputId ? { exact: inputId } : undefined } }); }
+    catch (e) {
+      if (!inputId || !/NotFound|Overconstrained/.test(e.name)) throw e;
+      stream = await navigator.mediaDevices.getUserMedia({ audio }); // the chosen mic is gone → default mic
+      E.fellBack = true;
+    }
     E.stream = stream;
+    const track = stream.getAudioTracks()[0];
+    E.inputLabel = track?.label || '';
+    if (track) track.onended = () => { if (E.running) { E.lost = true; E.running = false; E.onLost?.(); } };
     const src = ctx.createMediaStreamSource(stream);
     const n = await buildChain(ctx, s);
-    src.connect(n.input);
+    const nch = track?.getSettings?.().channelCount || 1;
+    if (ch !== 'mix' && nch >= 2) { const sp = ctx.createChannelSplitter(2); src.connect(sp); sp.connect(n.input, ch === 'L' ? 0 : 1); }
+    else src.connect(n.input);
     n.output.connect(ctx.destination);
     // extra tap for "hear myself" + recording
     E.monitorDest = ctx.createMediaStreamDestination(); n.output.connect(E.monitorDest);
     E.nodes = n;
     if (outputId) {
-      if (typeof ctx.setSinkId !== 'function') throw new Error('البراوزر ده مش بيقدر يطلّع الصوت على BlackHole. افتح الداشبورد في Google Chrome.');
+      if (typeof ctx.setSinkId !== 'function') throw new Error('البراوزر ده مش بيقدر يطلّع الصوت على الكابل الوهمي. افتح الداشبورد في Google Chrome أو Microsoft Edge.');
       await ctx.setSinkId(outputId);
     }
     if (ctx.state === 'suspended') await ctx.resume();
-    E.running = true; E.error = '';
+    E.running = true; E.error = ''; E.lost = false;
     return E;
   }
   async function stop() {
@@ -121,15 +139,39 @@
 
   // ---------------------------------------------------------------- UI (only when the platform needs it)
   const qs = new URLSearchParams(location.search);
-  function platform() { const st = G('STATUS'); return qs.get('engine') === 'web' ? 'web' : st?.platform === 'darwin' ? 'darwin' : st ? 'linux' : null; }
+  function platform() { const st = G('STATUS'); return qs.get('engine') === 'web' ? 'web' : ['darwin', 'win32', 'web'].includes(st?.platform) ? st.platform : st ? 'linux' : null; }
+  // virtual-cable names: what we play INTO (output list) and what other apps record FROM (input list)
+  const VOUT_RE = /blackhole|mohamed|cable input|vb-audio|voicemeeter in|voicemeeter aux in|loopback/i;
+  const VIN_RE = /blackhole|mohamed|cable output|voicemeeter out|monitor of/i;
+  const OS = {
+    darwin: { emo: '🍏', name: 'الماك', cable: 'BlackHole 2ch', pick: '<b>BlackHole 2ch</b> (أو «Mic (Mohamed)» لو عملته من Audio MIDI Setup)',
+      missing: 'مش لاقي BlackHole. سطّبه مرة واحدة: <span class="mono">brew install blackhole-2ch</span> (أو شغّل <span class="mono">bash install-mac.sh</span>)، وبعدين اعمل ريستارت للماك.',
+      help: `<summary>ⓘ أعمل مايك اسمه «Mic (Mohamed)» على الماك (مرة واحدة)</summary><div class="help">
+      ١. افتح <b>Audio MIDI Setup</b> (من Spotlight).<br>
+      ٢. دوس <b>+</b> تحت على الشمال ← <b>Create Aggregate Device</b>.<br>
+      ٣. علّم على <b>BlackHole 2ch</b> بس، ودوس دبل كليك على الاسم وسمّيه <b>Mic (Mohamed)</b>.<br>
+      دلوقتي زوم وOBS هيظهرلهم مايك اسمه «Mic (Mohamed)»، وهو نفس الصوت النضيف اللي طالع من هنا.</div>` },
+    win32: { emo: '🪟', name: 'ويندوز', cable: 'CABLE Input (VB-Audio Virtual Cable)', pick: '<b>CABLE Output (VB-Audio Virtual Cable)</b>',
+      missing: 'مش لاقي VB-CABLE. نزّله مجانًا من <a href="https://vb-audio.com/Cable/" target="_blank" rel="noopener">vb-audio.com/Cable</a>، فك الضغط، وشغّل <span class="mono">VBCABLE_Setup_x64.exe</span> كـ Administrator، وبعدين اعمل ريستارت. (أو شغّل <span class="mono">install-windows.ps1</span>)',
+      help: `<summary>ⓘ ازاي أختار المايك النضيف في البرامج على ويندوز</summary><div class="help">
+      ١. هنا: الدخل = المايك بتاعك، الخرج = <b>CABLE Input</b>.<br>
+      ٢. في زوم/تيمز/ديسكورد/OBS اختار المايك <b>CABLE Output (VB-Audio Virtual Cable)</b>.<br>
+      ٣. عشان يبقى الافتراضي لكل البرامج: <span class="mono">mmsys.cpl</span> ← Recording ← CABLE Output ← Set Default.<br>
+      ٤. لو عايز تسمّيه «Mic (Mohamed)»: من نفس الشباك ← Properties ← غيّر الاسم.</div>` },
+    web: { emo: '🌐', name: 'البراوزر', cable: 'كابل وهمي', pick: 'الكابل الوهمي اللي اخترته كخرج',
+      missing: 'مش لاقي كابل وهمي. على لينكس من غير PipeWire اعمل واحد: <span class="mono">pactl load-module module-null-sink sink_name=mic_mohamed</span>، واختار «Monitor of …» كمايك في البرامج.',
+      help: `<summary>ⓘ وضع البراوزر</summary><div class="help">التنضيف بيحصل جوه الصفحة. اختار جهاز خرج وهمي (كابل) والبرامج التانية تسجل منه.</div>` },
+  };
+  const os = () => OS[platform()] || OS.web;
 
-  const CARD = `
+  const CARD = () => `
   <section class="card clay we-card" id="weCard" style="margin-bottom:22px">
-    <h2><span class="emo bg-sky">🍏</span>Mic (Mohamed) على الماك <span class="sp"></span><span class="badge b-unknown" id="weBadge">متوقف</span></h2>
-    <p class="lead">على الماك التنضيف بيحصل <b>جوه الصفحة دي</b>، وبعدين الصوت بيطلع على <b>BlackHole</b>. في زوم أو OBS أو ميت اختار <b>BlackHole 2ch</b> كمايك (أو «Mic (Mohamed)» لو عملته من Audio MIDI Setup). <b>لازم الأبلكيشن يفضل مفتوح</b>، وممكن تصغّره عادي.</p>
+    <h2><span class="emo bg-sky">${os().emo}</span>Mic (Mohamed) على ${os().name} <span class="sp"></span><span class="badge b-unknown" id="weBadge">متوقف</span></h2>
+    <p class="lead">على ${os().name} التنضيف بيحصل <b>جوه الصفحة دي</b>، وبعدين الصوت بيطلع على <b>${os().cable}</b>. في زوم أو OBS أو ميت اختار ${os().pick} كمايك. <b>لازم الأبلكيشن يفضل مفتوح</b>، وممكن تصغّره عادي.</p>
     <div class="grid g2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
       <div><div class="small muted" style="font-weight:800;margin-bottom:6px">🎤 المايك الحقيقي (الدخل)</div><select id="weIn" style="width:100%"></select></div>
       <div><div class="small muted" style="font-weight:800;margin-bottom:6px">🔊 يطلع على (الخرج)</div><select id="weOut" style="width:100%"></select></div>
+      <div><div class="small muted" style="font-weight:800;margin-bottom:6px" title="لكارت صوت فيه مدخلين (XLR): اختار المدخل اللي المايك متوصل فيه بدل ما الصوت يوطى للنص">🎚 قناة المايك</div><select id="weCh" style="width:100%"><option value="mix">الاتنين (Mono)</option><option value="L">مدخل ١ بس (Left)</option><option value="R">مدخل ٢ بس (Right)</option></select></div>
     </div>
     <div id="weWarn" style="margin-top:10px"></div>
     <div class="row" style="margin-top:14px">
@@ -144,19 +186,14 @@
       <span>الليميتر: <b class="ltr" id="weLR">–</b></span>
     </div>
     <div id="weMsg" style="margin-top:8px"></div>
-    <details class="hint" style="margin-top:10px"><summary>ⓘ أعمل مايك اسمه «Mic (Mohamed)» على الماك (مرة واحدة)</summary><div class="help">
-      ١. افتح <b>Audio MIDI Setup</b> (من Spotlight).<br>
-      ٢. دوس <b>+</b> تحت على الشمال ← <b>Create Aggregate Device</b>.<br>
-      ٣. علّم على <b>BlackHole 2ch</b> بس، ودوس دبل كليك على الاسم وسمّيه <b>Mic (Mohamed)</b>.<br>
-      دلوقتي زوم وOBS هيظهرلهم مايك اسمه «Mic (Mohamed)»، وهو نفس الصوت النضيف اللي طالع من هنا.
-    </div></details>
+    <details class="hint" style="margin-top:10px">${os().help}</details>
   </section>`;
 
   let mounted = false;
   async function fillDevices() {
     let devs = [];
     try { devs = await navigator.mediaDevices.enumerateDevices(); } catch {}
-    const ins = devs.filter((d) => d.kind === 'audioinput' && !/blackhole|mohamed/i.test(d.label) && d.deviceId !== 'communications');
+    const ins = devs.filter((d) => d.kind === 'audioinput' && !VIN_RE.test(d.label) && d.deviceId !== 'communications');
     const outs = devs.filter((d) => d.kind === 'audiooutput');
     const s = G('SETTINGS') || {};
     const inSel = document.getElementById('weIn'), outSel = document.getElementById('weOut');
@@ -164,19 +201,26 @@
     inSel.innerHTML = ins.map((d) => `<option value="${d.deviceId}">${d.label || 'مايك (اسمح للبراوزر يشوف الأسماء)'}</option>`).join('') || '<option value="">مفيش مايك</option>';
     outSel.innerHTML = outs.map((d) => `<option value="${d.deviceId}">${d.label || 'خرج'}</option>`).join('') || '<option value="">الافتراضي</option>';
     if (keepIn && ins.some((d) => d.deviceId === keepIn)) inSel.value = keepIn;
-    else { const usb = ins.find((d) => /usb/i.test(d.label) && d.deviceId !== 'default'); if (usb) inSel.value = usb.deviceId; }
-    const bh = outs.find((d) => /blackhole/i.test(d.label) || /mohamed/i.test(d.label));
+    else { // first time: a USB / XLR interface / headset beats the laptop's built-in mic
+      const pick = ins.find((d) => d.deviceId !== 'default' && /usb|yeti|rode|shure|blue|fifine|hyperx|focusrite|scarlett|audient|motu|behringer|interface/i.test(d.label))
+        || ins.find((d) => d.deviceId === 'default') || ins[0];
+      if (pick) inSel.value = pick.deviceId;
+    }
+    const chSel = document.getElementById('weCh'); if (chSel) chSel.value = ['L', 'R'].includes(s.webInputChannel) ? s.webInputChannel : 'mix';
+    const bh = outs.find((d) => VOUT_RE.test(d.label) && d.deviceId !== 'default' && d.deviceId !== 'communications') || outs.find((d) => VOUT_RE.test(d.label));
     if (keepOut && outs.some((d) => d.deviceId === keepOut)) outSel.value = keepOut; else if (bh) outSel.value = bh.deviceId;
     const warn = document.getElementById('weWarn');
     const labelsHidden = devs.length && devs.every((d) => !d.label);
     warn.innerHTML = labelsHidden ? '<div class="status">دوس «شغّل» مرة وهيطلب إذن المايك، وبعدها الأسماء هتظهر.</div>'
-      : !bh && platform() === 'darwin' ? '<div class="status err">⚠ مش لاقي BlackHole. سطّبه مرة واحدة: <span class="mono">brew install blackhole-2ch</span> (أو شغّل <span class="mono">bash install-mac.sh</span>)، وبعدين اعمل ريستارت للماك.</div>'
-      : typeof AudioContext.prototype.setSinkId !== 'function' ? '<div class="status err">⚠ البراوزر ده مش بيقدر يختار جهاز الخرج. افتح الداشبورد في <b>Google Chrome</b>.</div>' : '';
+      : !bh ? `<div class="status err">⚠ ${os().missing}</div>`
+      : typeof AudioContext.prototype.setSinkId !== 'function' ? '<div class="status err">⚠ البراوزر ده مش بيقدر يختار جهاز الخرج. افتح الداشبورد في <b>Google Chrome</b> أو <b>Microsoft Edge</b>.</div>' : '';
+    // a mic that was unplugged came back → pick up where we left off
+    if (E.lost && s.webInputId && ins.some((d) => d.deviceId === s.webInputId)) { E.lost = false; msg('🔌 المايك رجع، بشغّل تاني…'); document.getElementById('weStart')?.click(); }
   }
   function mount() {
     if (mounted) return;
     const pw = document.getElementById('pwControls'); if (!pw) return;
-    const holder = document.createElement('div'); holder.innerHTML = CARD;
+    const holder = document.createElement('div'); holder.innerHTML = CARD();
     const scenes = document.getElementById('dnScenes');
     (scenes || pw).parentNode.insertBefore(holder.firstElementChild, scenes || pw);
     mounted = true;
@@ -188,19 +232,23 @@
       try {
         const s = G('SETTINGS');
         s.webInputId = document.getElementById('weIn').value; s.webOutputId = document.getElementById('weOut').value;
+        s.webInputChannel = document.getElementById('weCh')?.value || 'mix';
         await start({ inputId: s.webInputId, outputId: s.webOutputId });
         const pu = G('pushUpdate'); if (typeof pu === 'function') pu();   // saves the chosen devices
         await fillDevices();
         if (document.getElementById('weMon').checked) setMonitor(true);
         const outName = document.getElementById('weOut').selectedOptions[0]?.text || '';
-        if (/blackhole|mohamed/i.test(outName)) msg('✓ Mic (Mohamed) شغال. اختار <b>' + outName + '</b> كمايك في البرنامج اللي هتسجل بيه.', 'ok');
-        else msg('شغال، بس الخرج مش BlackHole (<b>' + (outName || 'الافتراضي') + '</b>)، فالبرامج التانية مش هتشوف الصوت النضيف. اختار BlackHole 2ch في «يطلع على».', 'err');
+        const fb = E.fellBack ? ` (المايك اللي كنت مختاره مش موجود، فاشتغلت على <b>${E.inputLabel || 'الافتراضي'}</b>)` : '';
+        if (VOUT_RE.test(outName)) msg('✓ Mic (Mohamed) شغال' + fb + '. اختار ' + (platform() === 'win32' ? '<b>CABLE Output</b>' : '<b>' + outName + '</b>') + ' كمايك في البرنامج اللي هتسجل بيه.', 'ok');
+        else msg('شغال' + fb + '، بس الخرج مش كابل وهمي (<b>' + (outName || 'الافتراضي') + '</b>)، فالبرامج التانية مش هتشوف الصوت النضيف. اختار ' + os().cable + ' في «يطلع على».', 'err');
       } catch (e) { msg(e.message, 'err'); await stop(); }
       b.disabled = false; badge();
     };
     document.getElementById('weStop').onclick = async () => { await stop(); msg('اتوقف.'); badge(); };
     document.getElementById('weMon').onchange = (e) => setMonitor(e.target.checked);
     document.getElementById('weIn').onchange = () => E.running && document.getElementById('weStart').click();
+    document.getElementById('weCh').onchange = () => { const s = G('SETTINGS'); if (s) s.webInputChannel = document.getElementById('weCh').value; if (E.running) document.getElementById('weStart').click(); };
+    E.onLost = () => { msg('🔌 المايك اتفصل. وصّله تاني وهشغّل لوحدي، أو اختار مايك تاني ودوس «شغّل».', 'err'); badge(); };
     document.getElementById('weOut').onchange = async (e) => { if (E.running && E.ctx.setSinkId) { try { await E.ctx.setSinkId(e.target.value); msg('✓ الخرج اتغيّر.', 'ok'); } catch (err) { msg(err.message, 'err'); } } };
     // The main «شغّل/وقّف» buttons drive the in-browser engine here
     const hook = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', (ev) => { ev.stopImmediatePropagation(); ev.preventDefault(); fn(); }, true); };
