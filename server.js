@@ -273,6 +273,19 @@ function findRnnoise() {
 const COMP_CANDIDATES = ['/usr/lib/ladspa/sc4m_1916.so', '/usr/lib/x86_64-linux-gnu/ladspa/sc4m_1916.so', '/usr/lib64/ladspa/sc4m_1916.so', '/usr/local/lib/ladspa/sc4m_1916.so', path.join(os.homedir(), '.ladspa/sc4m_1916.so')];
 const findComp = () => COMP_CANDIDATES.find((p) => fs.existsSync(p)) || scanLadspa(/^sc4m_1916\.so$/) || null;
 let compBroken = false; // set if the chain failed to start with the compressor
+let compInstall = { running: false, log: '', ok: null };
+async function compDiagnose() {
+  const d = { searched: ladspaDirs().map((p) => ({ p, exists: fs.existsSync(p) })) };
+  const q = await run('dpkg-query', ['-W', '-f=${Package} ${Status}\\n', 'swh-plugins', 'swh-lv2']);
+  const st = (name) => (q.out.split('\n').find((l) => l.startsWith(name + ' ')) || '').includes('install ok installed');
+  d.swhPlugins = st('swh-plugins');
+  d.swhLv2 = st('swh-lv2');
+  // sandboxed terminal (Flatpak VS Code, Snap...) hides /usr of the real system
+  d.sandbox = fs.existsSync('/.flatpak-info') ? 'flatpak' : process.env.SNAP ? 'snap' : fs.existsSync('/run/.containerenv') || fs.existsSync('/.dockerenv') ? 'container' : '';
+  d.pkexec = await has('pkexec');
+  d.install = compInstall;
+  return d;
+}
 
 let chainProc = null;      // pipewire -c child
 let chainLog = [];
@@ -294,6 +307,7 @@ async function cleanStatus(isPipeWire) {
       compFound: findComp(),
       compStatus: !findComp() ? 'missing' : compBroken ? 'failed' : 'ok',
       ladspaDirs: ladspaDirs().filter((d) => fs.existsSync(d)),
+      compDiag: findComp() ? null : await compDiagnose(),
       webrtc: true,
     },
     lastError,
@@ -888,6 +902,18 @@ const routes = {
     }
     if (restart) await restartPipeWire();
     return { ok: true, errors, items: await scanLegacy() };
+  },
+  'POST /api/comp/install': async () => {
+    if (findComp()) return { ok: true, already: true, path: findComp() };
+    if (compInstall.running) return { ok: true, running: true };
+    if (!(await has('pkexec'))) throw new Error('نفّذ في التيرمنال:  sudo apt install swh-plugins');
+    compInstall = { running: true, log: '', ok: null };
+    // runs in the background: pkexec shows Ubuntu's password dialog
+    run('pkexec', ['apt-get', 'install', '-y', 'swh-plugins'], { timeout: 600000 }).then((r) => {
+      compInstall = { running: false, ok: r.ok && !!findComp(), log: (r.out + '\n' + r.err).trim().split('\n').slice(-12).join('\n') };
+      compBroken = false;
+    });
+    return { ok: true, started: true };
   },
   'POST /api/rnnoise/install': async () => {
     if (findRnnoise()) return { ok: true, path: findRnnoise(), already: true };

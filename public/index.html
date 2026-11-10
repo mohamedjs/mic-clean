@@ -1274,9 +1274,31 @@ setInterval(() => $('autoRefresh').checked && refresh(), 3000);
     $$('dnCFields').classList.toggle('dn-off', !$$('dnC').checked || !hasComp());
     $$('dnLc').classList.toggle('dn-off', !$$('dnL').checked || !hasComp()); $$('dnLimBox').classList.toggle('dn-off', !hasComp());
     const cap = (() => { try { return STATUS?.clean?.capabilities || {}; } catch { return {}; } })();
+    const dg = cap.compDiag || {};
+    const why = () => {
+      if (dg.install?.running) return '⏳ بيسطّب swh-plugins دلوقتي… (لو ظهرلك مربع باسورد اكتب باسورد الجهاز)';
+      if (dg.sandbox) return `السيرفر شغال جوه بيئة معزولة (<b>${dg.sandbox}</b>)، زي تيرمنال VS Code المتسطّب Flatpak أو Snap، فمش شايف ملفات النظام حتى لو الباكدج متسطب. شغّله من <b>التيرمنال العادي</b> بتاع أوبونتو، أو شغّله كخدمة: <span class="mono">bash install-linux.sh</span>`;
+      if (dg.swhPlugins) return 'الباكدج <span class="mono">swh-plugins</span> متسطب، بس ملف <span class="mono">sc4m_1916.so</span> مش موجود. جرّب: <span class="mono">sudo apt install --reinstall swh-plugins</span>';
+      if (dg.swhLv2) return 'انت مسطّب <b>swh-lv2</b> (نسخة LV2)، والفلتر محتاج <b>swh-plugins</b> (نسخة LADSPA). الاتنين ممكن يتسطّبوا مع بعض عادي:';
+      return 'الباكدج <span class="mono">swh-plugins</span> مش متسطب لسه' + ((dg.searched || []).some((x) => x.p === '/usr/lib/ladspa' && !x.exists) ? ' (فولدر <span class="mono">/usr/lib/ladspa</span> مش موجود أصلًا)' : '') + '.';
+    };
+    const lastLog = dg.install && dg.install.ok === false && dg.install.log ? `<pre>${dg.install.log.replace(/</g, '&lt;')}</pre>` : '';
+    const canBtn = !dg.sandbox && !dg.install?.running && !dg.swhPlugins;
     $$('dnCompMissing').innerHTML = hasComp() ? `<div class="small muted">✓ الضاغط متسطب: <span class="mono">${cap.compPath}</span></div>`
       : cap.compStatus === 'failed' ? `<div class="status">⚠ الضاغط متسطب (<span class="mono">${cap.compFound}</span>)، بس المايك مشتغلش بيه المرة اللي فاتت، فاشتغل من غيره. دوس «▶ شغّل» تاني وأنا هجرّبه من الأول، ولو فضل كده ابعتلي «سجل المحرك» من تاب متقدم.</div>`
-      : `<div class="status">⚠ مش لاقي ملف الضاغط <span class="mono">sc4m_1916.so</span>. دوّرت في: <span class="mono">${(cap.ladspaDirs || []).join(' · ') || '—'}</span>. اتأكد إن التسطيب خلص: <span class="mono">sudo apt install swh-plugins</span>، وبعدين <span class="mono">ls /usr/lib/ladspa | grep sc4m</span>. لو السيرفر شغال من قبل التسطيب، أعد تشغيله.</div>`;
+      : `<div class="status">⚠ الضاغط والليميتر مش شغالين: ${why()}
+          ${canBtn ? `<div class="row" style="margin-top:10px"><button class="btn primary" id="dnCompInstall">📦 سطّب swh-plugins دلوقتي</button><span class="small muted">هيطلب باسورد الجهاز، أو نفّذ بنفسك: <span class="mono">sudo apt install swh-plugins</span></span></div>` : ''}
+          ${lastLog ? '<div class="small" style="margin-top:8px">آخر محاولة تسطيب فشلت:</div>' + lastLog : ''}
+          <details class="hint"><summary>ⓘ اتأكد بنفسك</summary><div class="help">نفّذ في التيرمنال العادي وابعتلي النتيجة لو لسه مش شغال:<pre>dpkg -l swh-plugins swh-lv2 | tail -2; ls /usr/lib/ladspa | grep sc4m; which node</pre>دوّرت في: ${(dg.searched || []).map((x) => `<span class="mono">${x.p}</span> ${x.exists ? '✓' : '✗'}`).join(' · ')}</div></details>
+        </div>`;
+    const ib = $$('dnCompInstall');
+    if (ib && !ib._bound) { ib._bound = true; ib.onclick = async () => {
+      ib.disabled = true; ib.textContent = '⏳ بيسطّب…';
+      const r = await fetch('/api/comp/install', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((x) => x.json()).catch(() => ({ ok: false, error: 'السيرفر مردش' }));
+      if (!r.ok) { ib.disabled = false; ib.textContent = '📦 سطّب swh-plugins دلوقتي'; alert(r.error); return; }
+      const ref = (() => { try { return refresh; } catch { return null; } })();
+      const iv = setInterval(async () => { if (ref) await ref(); labelsAll(); const d = STATUS?.clean?.capabilities; if (d?.compPath || d?.compDiag?.install?.ok === false) clearInterval(iv); }, 2500);
+    }; }
     const p = s.profile || 'custom';
     $$('dnProfile').textContent = PNAME[p] || '✏️ مخصص';
     document.querySelectorAll('.dn-scene').forEach((b) => b.classList.toggle('on', b.dataset.scene === p));
