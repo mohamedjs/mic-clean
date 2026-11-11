@@ -55,7 +55,8 @@ function findRnnoise() {
 }
 
 const COMP_CANDIDATES = ['/usr/lib/ladspa/sc4m_1916.so', '/usr/lib/x86_64-linux-gnu/ladspa/sc4m_1916.so', '/usr/lib/aarch64-linux-gnu/ladspa/sc4m_1916.so', '/usr/lib64/ladspa/sc4m_1916.so', '/usr/local/lib/ladspa/sc4m_1916.so', path.join(os.homedir(), '.ladspa/sc4m_1916.so')];
-const findComp = () => COMP_CANDIDATES.find((p) => fs.existsSync(p)) || scanLadspa(/^sc4m_1916\.so$/) || null;
+const findComp = () => (process.env.SC4M_LADSPA && fs.existsSync(process.env.SC4M_LADSPA) ? process.env.SC4M_LADSPA : null)
+  || COMP_CANDIDATES.find((p) => fs.existsSync(p)) || scanLadspa(/^sc4m_1916\.so$/) || null;
 let compBroken = false; // set if the chain failed to start with the compressor
 let compInstall = { running: false, log: '', ok: null };
 // swh-plugins has a different package name per distro

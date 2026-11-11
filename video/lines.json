@@ -10,11 +10,6 @@
   "style": "relatable, a little playful, natural brisk conversational pace, no long pauses"
  },
  {
-  "id": "n3",
-  "text": "وكمان صوتك بيعلى ويوطى، وساعات بيكسّر لو قرّبت من المايك.",
-  "style": "relatable, natural brisk conversational pace, no long pauses"
- },
- {
   "id": "n4",
   "text": "اسمع كده تسجيل من أوضة فيها دوشة، من غير Mic Clean.",
   "style": "inviting, short, natural brisk conversational pace, no long pauses"
@@ -30,19 +25,9 @@
   "style": "clear, explaining, natural brisk conversational pace, no long pauses"
  },
  {
-  "id": "n7",
-  "text": "على الماك من Homebrew ومعاه BlackHole، وعلى ويندوز Setup عادي ومعاه VB-CABLE.",
-  "style": "clear, explaining, natural brisk conversational pace, no long pauses"
- },
- {
   "id": "n8",
   "text": "أول ما تفتحه، الرئيسية بتشيّك على جهازك، وتقولك لو فيه حاجة ناقصة وتجيبها إزاي.",
   "style": "clear, helpful, natural brisk conversational pace, no long pauses"
- },
- {
-  "id": "n9",
-  "text": "وبياخد المايك الافتراضي بتاع جهازك على طول، من غير ما تختار حاجة. دوسة على شغّل وخلاص.",
-  "style": "clear, reassuring, natural brisk conversational pace, no long pauses"
  },
  {
   "id": "n10",
@@ -55,53 +40,79 @@
   "style": "clear, natural brisk conversational pace, no long pauses"
  },
  {
+  "id": "n3",
+  "text": "وكمان صوتك بيعلى ويوطى، وساعات بيكسّر لو قرّبت من المايك.",
+  "style": "relatable, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n3"
+  ]
+ },
+ {
+  "id": "n7",
+  "text": "على الماك من Homebrew ومعاه BlackHole، وعلى ويندوز Setup عادي ومعاه VB-CABLE.",
+  "style": "clear, explaining, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n7"
+  ]
+ },
+ {
+  "id": "n9",
+  "text": "وبياخد المايك الافتراضي بتاع جهازك على طول، من غير ما تختار حاجة. دوسة على شغّل وخلاص.",
+  "style": "clear, reassuring, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n9"
+  ]
+ },
+ {
   "id": "n12",
   "text": "ومن اسمع وقارن، تقلب بين المايك الخام والنضيف، وتشوف الفرق بعينك.",
-  "style": "clear, natural brisk conversational pace, no long pauses"
+  "style": "clear, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n12"
+  ]
  },
  {
-  "id": "n13",
-  "text": "على لينكس، الصوت بيعدي على filter-chain جوه PipeWire.",
-  "style": "clear, technical, natural brisk conversational pace, no long pauses"
+  "id": "g_linux",
+  "text": "على لينكس، الصوت بيعدي على filter-chain جوه PipeWire. RNNoise مرتين، وبعدين EQ و compressor، وفي الآخر limiter عشان الصوت ميكسّرش. والنتيجة مايك وهمي اسمه Mic Clean، تختاره في زوم أو OBS.",
+  "style": "clear, technical, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n13",
+   "n14",
+   "n15"
+  ]
  },
  {
-  "id": "n14",
-  "text": "RNNoise مرتين، وبعدين EQ و compressor، وفي الآخر limiter عشان الصوت ميكسّرش.",
-  "style": "clear, technical, natural brisk conversational pace, no long pauses"
- },
- {
-  "id": "n15",
-  "text": "والنتيجة مايك وهمي اسمه Mic Clean، تختاره في زوم أو OBS.",
-  "style": "clear, natural brisk conversational pace, no long pauses"
- },
- {
-  "id": "n16",
-  "text": "على الماك وويندوز، التنضيف بيحصل جوه شباك الأبلكيشن نفسه، بـ Web Audio و RNNoise WASM.",
-  "style": "clear, technical, natural brisk conversational pace, no long pauses"
- },
- {
-  "id": "n17",
-  "text": "والصوت النضيف بيطلع على BlackHole أو VB-CABLE، والبرامج بتسجّل منه.",
-  "style": "clear, natural brisk conversational pace, no long pauses"
+  "id": "g_macwin",
+  "text": "على الماك وويندوز، التنضيف بيحصل جوه شباك الأبلكيشن نفسه، بـ Web Audio و RNNoise WASM. والصوت النضيف بيطلع على BlackHole أو VB-CABLE، والبرامج بتسجّل منه.",
+  "style": "clear, technical, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n16",
+   "n17"
+  ]
  },
  {
   "id": "n18",
   "text": "والكود modular monolith بسيط: core، وموديول لكل نظام، وملف presets واحد بيشاركه السيرفر والواجهة.",
-  "style": "clear, technical, natural brisk conversational pace, no long pauses"
+  "style": "clear, technical, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n18"
+  ]
  },
  {
-  "id": "n19",
-  "text": "مثلًا ده الجزء اللي بيختار المايك: لو انت مختارتش، بياخد الافتراضي بتاع الجهاز.",
-  "style": "clear, technical, natural brisk conversational pace, no long pauses"
- },
- {
-  "id": "n20",
-  "text": "ولما Mic Clean يقف، بيرجّع المايك الافتراضي زي ما كان.",
-  "style": "clear, natural brisk conversational pace, no long pauses"
+  "id": "g_code",
+  "text": "مثلًا ده الجزء اللي بيختار المايك: لو انت مختارتش، بياخد الافتراضي بتاع الجهاز. ولما Mic Clean يقف، بيرجّع المايك الافتراضي زي ما كان.",
+  "style": "clear, technical, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n19",
+   "n20"
+  ]
  },
  {
   "id": "n21",
   "text": "نزّله من صفحة Mic Clean على GitHub، وجرّب الفرق بنفسك.",
-  "style": "warm, confident outro, natural brisk conversational pace, no long pauses"
+  "style": "warm, confident outro, natural brisk conversational pace, no long pauses",
+  "from": [
+   "n21"
+  ]
  }
 ]
