@@ -1,4 +1,4 @@
-/* Mic (Mohamed) — in-browser audio engine (macOS, Windows, and Linux without PipeWire)
+/* Mic Clean — in-browser audio engine (macOS, Windows, and Linux without PipeWire)
  *
  * mic → input gain → high-pass → RNNoise ① → RNNoise ② → 10-band EQ → compressor
  *     → make-up → output gain → limiter → output device (BlackHole on Mac)
@@ -14,7 +14,7 @@
 
   // ---------------------------------------------------------------- DSP chain
   async function buildChain(ctx, s) {
-    await ctx.audioWorklet.addModule(new URL('rnnoise-worklet.js', document.baseURI).href);
+    await ctx.audioWorklet.addModule(new URL('/js/audio/rnnoise-worklet.js', document.baseURI).href);
     const n = {};
     n.input = ctx.createGain();
     n.hp = ctx.createBiquadFilter(); n.hp.type = 'highpass'; n.hp.Q.value = 0.707;
@@ -141,23 +141,23 @@
   const qs = new URLSearchParams(location.search);
   function platform() { const st = G('STATUS'); return qs.get('engine') === 'web' ? 'web' : ['darwin', 'win32', 'web'].includes(st?.platform) ? st.platform : st ? 'linux' : null; }
   // virtual-cable names: what we play INTO (output list) and what other apps record FROM (input list)
-  const VOUT_RE = /blackhole|mohamed|cable input|vb-audio|voicemeeter in|voicemeeter aux in|loopback/i;
-  const VIN_RE = /blackhole|mohamed|cable output|voicemeeter out|monitor of/i;
+  const VOUT_RE = /blackhole|mic clean|mohamed|cable input|vb-audio|voicemeeter in|voicemeeter aux in|loopback/i;
+  const VIN_RE = /blackhole|mic clean|mohamed|cable output|voicemeeter out|monitor of/i;
   const OS = {
-    darwin: { emo: '🍏', name: 'الماك', cable: 'BlackHole 2ch', pick: '<b>BlackHole 2ch</b> (أو «Mic (Mohamed)» لو عملته من Audio MIDI Setup)',
+    darwin: { emo: '🍏', name: 'الماك', cable: 'BlackHole 2ch', pick: '<b>BlackHole 2ch</b> (أو «Mic Clean» لو عملته من Audio MIDI Setup)',
       missing: 'مش لاقي BlackHole. سطّبه مرة واحدة: <span class="mono">brew install blackhole-2ch</span> (أو شغّل <span class="mono">bash install-mac.sh</span>)، وبعدين اعمل ريستارت للماك.',
-      help: `<summary>ⓘ أعمل مايك اسمه «Mic (Mohamed)» على الماك (مرة واحدة)</summary><div class="help">
+      help: `<summary>ⓘ أعمل مايك اسمه «Mic Clean» على الماك (مرة واحدة)</summary><div class="help">
       ١. افتح <b>Audio MIDI Setup</b> (من Spotlight).<br>
       ٢. دوس <b>+</b> تحت على الشمال ← <b>Create Aggregate Device</b>.<br>
-      ٣. علّم على <b>BlackHole 2ch</b> بس، ودوس دبل كليك على الاسم وسمّيه <b>Mic (Mohamed)</b>.<br>
-      دلوقتي زوم وOBS هيظهرلهم مايك اسمه «Mic (Mohamed)»، وهو نفس الصوت النضيف اللي طالع من هنا.</div>` },
+      ٣. علّم على <b>BlackHole 2ch</b> بس، ودوس دبل كليك على الاسم وسمّيه <b>Mic Clean</b>.<br>
+      دلوقتي زوم وOBS هيظهرلهم مايك اسمه «Mic Clean»، وهو نفس الصوت النضيف اللي طالع من هنا.</div>` },
     win32: { emo: '🪟', name: 'ويندوز', cable: 'CABLE Input (VB-Audio Virtual Cable)', pick: '<b>CABLE Output (VB-Audio Virtual Cable)</b>',
       missing: 'مش لاقي VB-CABLE. نزّله مجانًا من <a href="https://vb-audio.com/Cable/" target="_blank" rel="noopener">vb-audio.com/Cable</a>، فك الضغط، وشغّل <span class="mono">VBCABLE_Setup_x64.exe</span> كـ Administrator، وبعدين اعمل ريستارت. (أو شغّل <span class="mono">install-windows.ps1</span>)',
       help: `<summary>ⓘ ازاي أختار المايك النضيف في البرامج على ويندوز</summary><div class="help">
       ١. هنا: الدخل = المايك بتاعك، الخرج = <b>CABLE Input</b>.<br>
       ٢. في زوم/تيمز/ديسكورد/OBS اختار المايك <b>CABLE Output (VB-Audio Virtual Cable)</b>.<br>
       ٣. عشان يبقى الافتراضي لكل البرامج: <span class="mono">mmsys.cpl</span> ← Recording ← CABLE Output ← Set Default.<br>
-      ٤. لو عايز تسمّيه «Mic (Mohamed)»: من نفس الشباك ← Properties ← غيّر الاسم.</div>` },
+      ٤. لو عايز تسمّيه «Mic Clean»: من نفس الشباك ← Properties ← غيّر الاسم.</div>` },
     web: { emo: '🌐', name: 'البراوزر', cable: 'كابل وهمي', pick: 'الكابل الوهمي اللي اخترته كخرج',
       missing: 'مش لاقي كابل وهمي. على لينكس من غير PipeWire اعمل واحد: <span class="mono">pactl load-module module-null-sink sink_name=mic_mohamed</span>، واختار «Monitor of …» كمايك في البرامج.',
       help: `<summary>ⓘ وضع البراوزر</summary><div class="help">التنضيف بيحصل جوه الصفحة. اختار جهاز خرج وهمي (كابل) والبرامج التانية تسجل منه.</div>` },
@@ -166,7 +166,7 @@
 
   const CARD = () => `
   <section class="card clay we-card" id="weCard" style="margin-bottom:22px">
-    <h2><span class="emo bg-sky">${os().emo}</span>Mic (Mohamed) على ${os().name} <span class="sp"></span><span class="badge b-unknown" id="weBadge">متوقف</span></h2>
+    <h2><span class="emo bg-sky">${os().emo}</span>Mic Clean على ${os().name} <span class="sp"></span><span class="badge b-unknown" id="weBadge">متوقف</span></h2>
     <p class="lead">على ${os().name} التنضيف بيحصل <b>جوه الصفحة دي</b>، وبعدين الصوت بيطلع على <b>${os().cable}</b>. في زوم أو OBS أو ميت اختار ${os().pick} كمايك. <b>لازم الأبلكيشن يفضل مفتوح</b>، وممكن تصغّره عادي.</p>
     <div class="grid g2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
       <div><div class="small muted" style="font-weight:800;margin-bottom:6px">🎤 المايك الحقيقي (الدخل)</div><select id="weIn" style="width:100%"></select></div>
@@ -175,7 +175,7 @@
     </div>
     <div id="weWarn" style="margin-top:10px"></div>
     <div class="row" style="margin-top:14px">
-      <button class="btn primary" id="weStart">▶ شغّل Mic (Mohamed)</button>
+      <button class="btn primary" id="weStart">▶ شغّل Mic Clean</button>
       <button class="btn danger" id="weStop">■ وقّف</button>
       <label class="chk small"><input type="checkbox" class="switch" id="weMon"> 🎧 اسمع الصوت النضيف (بالهيدفون)</label>
     </div>
@@ -198,12 +198,11 @@
     const s = G('SETTINGS') || {};
     const inSel = document.getElementById('weIn'), outSel = document.getElementById('weOut');
     const keepIn = inSel.value || s.webInputId || '', keepOut = outSel.value || s.webOutputId || '';
-    inSel.innerHTML = ins.map((d) => `<option value="${d.deviceId}">${d.label || 'مايك (اسمح للبراوزر يشوف الأسماء)'}</option>`).join('') || '<option value="">مفيش مايك</option>';
+    inSel.innerHTML = ins.map((d) => `<option value="${d.deviceId}">${d.deviceId === 'default' ? '🎙 الافتراضي بتاع الجهاز' + (d.label ? ' — ' + d.label.replace(/^(default|الافتراضي)\s*[-–]\s*/i, '') : '') : d.label || 'مايك (اسمح للبراوزر يشوف الأسماء)'}</option>`).join('') || '<option value="">مفيش مايك</option>';
     outSel.innerHTML = outs.map((d) => `<option value="${d.deviceId}">${d.label || 'خرج'}</option>`).join('') || '<option value="">الافتراضي</option>';
     if (keepIn && ins.some((d) => d.deviceId === keepIn)) inSel.value = keepIn;
-    else { // first time: a USB / XLR interface / headset beats the laptop's built-in mic
-      const pick = ins.find((d) => d.deviceId !== 'default' && /usb|yeti|rode|shure|blue|fifine|hyperx|focusrite|scarlett|audient|motu|behringer|interface/i.test(d.label))
-        || ins.find((d) => d.deviceId === 'default') || ins[0];
+    else { // first time: the system's default mic (the one picked in the OS sound settings)
+      const pick = ins.find((d) => d.deviceId === 'default') || ins[0];
       if (pick) inSel.value = pick.deviceId;
     }
     const chSel = document.getElementById('weCh'); if (chSel) chSel.value = ['L', 'R'].includes(s.webInputChannel) ? s.webInputChannel : 'mix';
@@ -219,10 +218,13 @@
   }
   function mount() {
     if (mounted) return;
-    const pw = document.getElementById('pwControls'); if (!pw) return;
+    const slot = document.getElementById('engineSlot'); if (!slot) return;
     const holder = document.createElement('div'); holder.innerHTML = CARD();
-    const scenes = document.getElementById('dnScenes');
-    (scenes || pw).parentNode.insertBefore(holder.firstElementChild, scenes || pw);
+    slot.appendChild(holder.firstElementChild);
+    // the Linux-only input/engine row is replaced by this card's own pickers
+    const li = document.getElementById('linuxInput'); if (li) li.hidden = true;
+    // this card has its own start/stop; the main ones would only duplicate them
+    ['startBtn', 'stopBtn'].forEach((id) => { const el = document.getElementById(id); if (el) el.hidden = true; });
     mounted = true;
     // Linux-only bits make no sense on the Mac
     ['legacyCard'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -239,7 +241,7 @@
         if (document.getElementById('weMon').checked) setMonitor(true);
         const outName = document.getElementById('weOut').selectedOptions[0]?.text || '';
         const fb = E.fellBack ? ` (المايك اللي كنت مختاره مش موجود، فاشتغلت على <b>${E.inputLabel || 'الافتراضي'}</b>)` : '';
-        if (VOUT_RE.test(outName)) msg('✓ Mic (Mohamed) شغال' + fb + '. اختار ' + (platform() === 'win32' ? '<b>CABLE Output</b>' : '<b>' + outName + '</b>') + ' كمايك في البرنامج اللي هتسجل بيه.', 'ok');
+        if (VOUT_RE.test(outName)) msg('✓ Mic Clean شغال' + fb + '. اختار ' + (platform() === 'win32' ? '<b>CABLE Output</b>' : '<b>' + outName + '</b>') + ' كمايك في البرنامج اللي هتسجل بيه.', 'ok');
         else msg('شغال' + fb + '، بس الخرج مش كابل وهمي (<b>' + (outName || 'الافتراضي') + '</b>)، فالبرامج التانية مش هتشوف الصوت النضيف. اختار ' + os().cable + ' في «يطلع على».', 'err');
       } catch (e) { msg(e.message, 'err'); await stop(); }
       b.disabled = false; badge();
@@ -262,7 +264,7 @@
   function badge() {
     const b = document.getElementById('weBadge'); if (!b) return;
     b.textContent = E.running ? 'شغال' : 'متوقف'; b.className = 'badge ' + (E.running ? 'b-hardware' : 'b-unknown');
-    const es = document.getElementById('engineState'); if (es && platform() !== 'linux') es.textContent = E.running ? 'Mic (Mohamed) شغال · في البراوزر' : 'Mic (Mohamed) متوقف';
+    const es = document.getElementById('engineState'); if (es && platform() !== 'linux') es.textContent = E.running ? 'Mic Clean شغال · في البراوزر' : 'Mic Clean متوقف';
   }
   function meters() {
     const n = E.nodes; if (!n) { ['weV1', 'weV2', 'weGR', 'weLR'].forEach((id) => { const el = document.getElementById(id); if (el) el.textContent = '–'; }); return; }
