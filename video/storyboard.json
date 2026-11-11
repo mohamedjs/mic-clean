@@ -1,86 +1,522 @@
 {
-  "brand": { "logo": "img/logo.png", "accent": "#c95a3c", "dark": "#2b2842", "flow": "#e0702b" },
-  "scenes": [
-    { "id": "title", "type": "title", "vo": "n1", "title": "Mic Clean", "sub": "أي مايك، صوته نضيف زي الاستوديو",
-      "tiles": [{ "icon": "ubuntu", "text": "Linux" }, { "icon": "apple", "text": "macOS" }, { "icon": "windows", "text": "Windows" }, { "icon": "mic", "text": "أي مايك" }] },
-
-    { "id": "problem", "type": "bullets", "vo": ["n2", "n3"], "title": "المشكلة", "icon": "volume-vibrate",
-      "items": [
-        { "icon": "windy", "text": "مروحة وتكييف", "sub": "زنّة ثابتة تحت صوتك" },
-        { "icon": "keyboard-box", "text": "كيبورد وماوس", "sub": "تكّات بتقطع الكلام" },
-        { "icon": "road-map", "text": "دوشة الشارع", "sub": "عربيات وناس بتتكلم" },
-        { "icon": "equalizer-2", "text": "علو مش ثابت", "sub": "بيعلى ويوطى، وساعات بيكسّر" } ] },
-
-    { "id": "demo", "type": "shot", "vo": ["n4", "demo_raw", "n5", "demo_clean"], "clip": "ab", "fps": 15, "frame": "screen",
-      "title": "اسمع الفرق", "icon": "headphone", "post": 0.4,
-      "points": [{ "icon": "mic", "text": "نفس التسجيل، مرتين" }, { "icon": "magic", "text": "Mic Clean شغال بإعدادات البودكاست" }],
-      "marks": [{ "vo": "demo_raw", "text": "قبل: المايك الخام", "icon": "ri-mic-off-line", "color": "#b8473a" },
-                { "vo": "demo_clean", "text": "بعد: Mic Clean", "icon": "ri-sparkling-2-line", "color": "#1f8277" }] },
-
-    { "id": "install", "type": "bullets", "vo": ["n6", "n7"], "title": "التسطيب", "icon": "download-2",
-      "items": [
-        { "icon": "ubuntu", "text": "لينكس", "sub": ".deb أو AppImage، وRNNoise جاي جوّاه" },
-        { "icon": "apple", "text": "الماك", "sub": "brew install --cask mic-clean ومعاه BlackHole" },
-        { "icon": "windows", "text": "ويندوز", "sub": "Setup.exe ومعاه VB-CABLE" },
-        { "icon": "github", "text": "GitHub Releases", "sub": "كل نسخة بتتبني وتتجرّب أوتوماتيك" } ] },
-
-    { "id": "check", "type": "shot", "vo": "n8", "clip": "check", "fps": 15, "frame": "screen", "title": "الجهاز جاهز؟", "icon": "checkbox-multiple",
-      "points": [{ "icon": "search-eye", "text": "بيشيّك على كل حاجة الأبلكيشن محتاجها" }, { "icon": "terminal-box", "text": "زرار أو أمر تنسخه لكل حاجة ناقصة" }] },
-
-    { "id": "home", "type": "shot", "vo": "n9", "clip": "home", "fps": 15, "frame": "screen", "title": "شغّل المايك النضيف", "icon": "play-circle",
-      "points": [{ "icon": "mic", "text": "المايك الافتراضي بتاع جهازك" }, { "icon": "cursor", "text": "دوسة واحدة على شغّل" }] },
-
-    { "id": "scenes", "type": "shot", "vo": "n10", "clip": "scenes", "fps": 15, "frame": "screen", "title": "أوضاع جاهزة", "icon": "magic",
-      "points": [{ "icon": "mic-2", "text": "بودكاست هو الافتراضي" }, { "icon": "team", "text": "اجتماعات، ستريم، مكان دوشة" }] },
-
-    { "id": "tune", "type": "shot", "vo": "n11", "clip": "tune", "fps": 15, "frame": "screen", "title": "الضبط", "icon": "equalizer-3",
-      "points": [{ "icon": "sound-module", "text": "كل مرحلة ليها شرح" }, { "icon": "flashlight", "text": "التعديل بيتطبق على طول" }] },
-
-    { "id": "monitor", "type": "shot", "vo": "n12", "clip": "monitor", "fps": 15, "frame": "screen", "title": "اسمع وقارن", "icon": "line-chart",
-      "points": [{ "icon": "swap-box", "text": "A الخام، B النضيف" }, { "icon": "bar-chart-2", "text": "قراءات وspectrogram" }] },
-
-    { "id": "linux", "type": "diagram", "vo": ["n13", "n14", "n15"], "title": "على لينكس", "icon": "ubuntu", "sub": "جوه PipeWire",
-      "nodes": [
-        { "id": "mic",  "label": "المايك",       "icon": "mic",          "tech": "system default", "x": 1650, "y": 420 },
-        { "id": "rn",   "label": "عزل الضوضاء",  "icon": "magic",        "tech": "RNNoise ×2",     "x": 1240, "y": 420 },
-        { "id": "eq",   "label": "الصوت",        "icon": "equalizer-2",  "tech": "EQ + compressor", "x": 830,  "y": 420 },
-        { "id": "lim",  "label": "الحماية",      "icon": "shield-check", "tech": "limiter −2 dB",  "x": 420,  "y": 420 },
-        { "id": "out",  "label": "مايك وهمي",    "icon": "mic-2",        "tech": "Mic Clean",      "x": 420,  "y": 760 },
-        { "id": "apps", "label": "البرامج",      "icon": "vidicon",      "tech": "Zoom · OBS · Meet", "x": 830, "y": 760 } ],
-      "edges": [ { "from": "mic", "to": "rn" }, { "from": "rn", "to": "eq" }, { "from": "eq", "to": "lim" }, { "from": "lim", "to": "out" }, { "from": "out", "to": "apps" } ],
-      "flow": [ { "from": "mic", "to": "rn", "text": "الصوت داخل من المايك الافتراضي", "vo": "n13" },
-                { "from": "rn", "to": "eq", "text": "RNNoise مرتين بيشيل الضوضاء", "vo": "n14" },
-                { "from": "eq", "to": "lim", "text": "EQ و compressor، وبعدين limiter" },
-                { "from": "lim", "to": "out", "text": "بيطلع مايك وهمي اسمه Mic Clean", "vo": "n15" },
-                { "from": "out", "to": "apps", "text": "تختاره في زوم أو OBS" } ] },
-
-    { "id": "macwin", "type": "diagram", "vo": ["n16", "n17"], "title": "على الماك وويندوز", "icon": "computer", "sub": "جوه شباك الأبلكيشن",
-      "nodes": [
-        { "id": "mic",  "label": "المايك",        "icon": "mic",         "tech": "system default", "x": 1650, "y": 480 },
-        { "id": "win",  "label": "شباك الأبلكيشن", "icon": "window-2",    "tech": "Web Audio + RNNoise WASM", "x": 1180, "y": 480 },
-        { "id": "cable","label": "الكابل الوهمي",  "icon": "plug",        "tech": "BlackHole · VB-CABLE", "x": 700, "y": 480 },
-        { "id": "apps", "label": "البرامج",        "icon": "vidicon",     "tech": "Zoom · OBS · Meet", "x": 260, "y": 480 },
-        { "id": "srv",  "label": "السيرفر المحلي", "icon": "server",      "tech": "Node.js · 127.0.0.1", "x": 1180, "y": 800 } ],
-      "edges": [ { "from": "mic", "to": "win" }, { "from": "win", "to": "cable", "label": "setSinkId" }, { "from": "cable", "to": "apps" },
-                 { "from": "win", "to": "srv", "label": "الإعدادات والأجهزة", "lx": 150 } ],
-      "flow": [ { "from": "mic", "to": "win", "text": "الشباك بياخد صوت المايك", "vo": "n16" },
-                { "from": "win", "to": "srv", "text": "والسيرفر بيعرف الأجهزة ويحفظ الإعدادات" },
-                { "from": "win", "to": "cable", "text": "الصوت النضيف بيطلع على الكابل الوهمي", "vo": "n17" },
-                { "from": "cable", "to": "apps", "text": "والبرامج بتسجّل منه" } ] },
-
-    { "id": "layers", "type": "bullets", "vo": "n18", "title": "الكود من جوه", "icon": "stack", "sub": "modular monolith",
-      "items": [
-        { "icon": "settings-4", "text": "core", "sub": "config · exec · http" },
-        { "icon": "apps-2", "text": "modules", "sub": "linux · mac · windows · deps · settings" },
-        { "icon": "share-circle", "text": "shared/presets.js", "sub": "السيرفر والواجهة بيقروا نفس الأوضاع" },
-        { "icon": "computer", "text": "electron + public", "sub": "الشباك والتراي والواجهة" } ] },
-
-    { "id": "code", "type": "code", "vo": ["n19", "n20"], "title": "المايك الافتراضي", "icon": "code-s-slash", "sub": "src/modules/linux/default-mic.js",
-      "code": "async function resolveInput() {\n  if (settings.master && !isOurs(settings.master)) return settings.master;\n  const def = await systemDefault();\n  if (!isOurs(def)) return def;          // the mic the system already uses\n  return settings.previousDefault || firstHardwareMic();\n}\n\nasync function restore() {               // when Mic Clean stops\n  if (!isOurs(await systemDefault())) return;\n  await run('pactl', ['set-default-source', previousDefault]);\n}",
-      "highlight": [{ "lines": [3, 4], "vo": "n19" }, { "lines": [8, 11], "vo": "n20" }] },
-
-    { "id": "outro", "type": "outro", "vo": "n21", "title": "Mic Clean", "sub": "صوتك نضيف، من أي مايك",
-      "tiles": [{ "icon": "ubuntu", "text": "Linux" }, { "icon": "apple", "text": "macOS" }, { "icon": "windows", "text": "Windows" }, { "icon": "github", "text": "مفتوح المصدر" }],
-      "url": "mohamedjs.github.io/mic-clean" }
-  ]
+ "brand": {
+  "logo": "img/logo.png",
+  "accent": "#c95a3c",
+  "dark": "#2b2842",
+  "flow": "#e0702b"
+ },
+ "scenes": [
+  {
+   "id": "title",
+   "type": "title",
+   "vo": "n1",
+   "title": "Mic Clean",
+   "sub": "أي مايك، صوته نضيف زي الاستوديو",
+   "tiles": [
+    {
+     "icon": "ubuntu",
+     "text": "Linux"
+    },
+    {
+     "icon": "apple",
+     "text": "macOS"
+    },
+    {
+     "icon": "windows",
+     "text": "Windows"
+    },
+    {
+     "icon": "mic",
+     "text": "أي مايك"
+    }
+   ]
+  },
+  {
+   "id": "problem",
+   "type": "bullets",
+   "vo": [
+    "n2",
+    "n3"
+   ],
+   "title": "المشكلة",
+   "icon": "volume-vibrate",
+   "items": [
+    {
+     "icon": "windy",
+     "text": "مروحة وتكييف",
+     "sub": "زنّة ثابتة تحت صوتك"
+    },
+    {
+     "icon": "keyboard-box",
+     "text": "كيبورد وماوس",
+     "sub": "تكّات بتقطع الكلام"
+    },
+    {
+     "icon": "road-map",
+     "text": "دوشة الشارع",
+     "sub": "عربيات وناس بتتكلم"
+    },
+    {
+     "icon": "equalizer-2",
+     "text": "علو مش ثابت",
+     "sub": "بيعلى ويوطى، وساعات بيكسّر"
+    }
+   ]
+  },
+  {
+   "id": "demo",
+   "type": "shot",
+   "vo": [
+    "n4",
+    "demo_raw",
+    "n5",
+    "demo_clean"
+   ],
+   "clip": "ab",
+   "fps": 15,
+   "frame": "screen",
+   "title": "اسمع الفرق",
+   "icon": "headphone",
+   "post": 0.4,
+   "points": [
+    {
+     "icon": "mic",
+     "text": "نفس التسجيل، مرتين"
+    },
+    {
+     "icon": "magic",
+     "text": "Mic Clean شغال بإعدادات البودكاست"
+    }
+   ],
+   "marks": [
+    {
+     "vo": "demo_raw",
+     "text": "قبل: المايك الخام",
+     "icon": "ri-mic-off-line",
+     "color": "#b8473a"
+    },
+    {
+     "vo": "demo_clean",
+     "text": "بعد: Mic Clean",
+     "icon": "ri-sparkling-2-line",
+     "color": "#1f8277"
+    }
+   ]
+  },
+  {
+   "id": "install",
+   "type": "bullets",
+   "vo": [
+    "n6",
+    "n7"
+   ],
+   "title": "التسطيب",
+   "icon": "download-2",
+   "items": [
+    {
+     "icon": "ubuntu",
+     "text": "لينكس",
+     "sub": "ملف deb أو AppImage، وRNNoise جوّاه"
+    },
+    {
+     "icon": "apple",
+     "text": "الماك",
+     "sub": "من Homebrew، ومعاه BlackHole"
+    },
+    {
+     "icon": "windows",
+     "text": "ويندوز",
+     "sub": "ملف Setup عادي، ومعاه VB-CABLE"
+    },
+    {
+     "icon": "github",
+     "text": "GitHub Releases",
+     "sub": "كل نسخة بتتبني وتتجرّب أوتوماتيك"
+    }
+   ]
+  },
+  {
+   "id": "check",
+   "type": "shot",
+   "vo": "n8",
+   "clip": "check",
+   "fps": 15,
+   "frame": "screen",
+   "title": "الجهاز جاهز؟",
+   "icon": "checkbox-multiple",
+   "points": [
+    {
+     "icon": "search-eye",
+     "text": "بيشيّك على كل حاجة الأبلكيشن محتاجها"
+    },
+    {
+     "icon": "terminal-box",
+     "text": "زرار أو أمر تنسخه لكل حاجة ناقصة"
+    }
+   ]
+  },
+  {
+   "id": "home",
+   "type": "shot",
+   "vo": "n9",
+   "clip": "home",
+   "fps": 15,
+   "frame": "screen",
+   "title": "شغّل المايك النضيف",
+   "icon": "play-circle",
+   "points": [
+    {
+     "icon": "mic",
+     "text": "المايك الافتراضي بتاع جهازك"
+    },
+    {
+     "icon": "cursor",
+     "text": "دوسة واحدة على شغّل"
+    }
+   ]
+  },
+  {
+   "id": "scenes",
+   "type": "shot",
+   "vo": "n10",
+   "clip": "scenes",
+   "fps": 15,
+   "frame": "screen",
+   "title": "أوضاع جاهزة",
+   "icon": "magic",
+   "points": [
+    {
+     "icon": "mic-2",
+     "text": "بودكاست هو الافتراضي"
+    },
+    {
+     "icon": "team",
+     "text": "اجتماعات، ستريم، مكان دوشة"
+    }
+   ]
+  },
+  {
+   "id": "tune",
+   "type": "shot",
+   "vo": "n11",
+   "clip": "tune",
+   "fps": 15,
+   "frame": "screen",
+   "title": "الضبط",
+   "icon": "equalizer-3",
+   "points": [
+    {
+     "icon": "sound-module",
+     "text": "كل مرحلة ليها شرح"
+    },
+    {
+     "icon": "flashlight",
+     "text": "التعديل بيتطبق على طول"
+    }
+   ]
+  },
+  {
+   "id": "monitor",
+   "type": "shot",
+   "vo": "n12",
+   "clip": "monitor",
+   "fps": 15,
+   "frame": "screen",
+   "title": "اسمع وقارن",
+   "icon": "line-chart",
+   "points": [
+    {
+     "icon": "swap-box",
+     "text": "الخام على A، والنضيف على B"
+    },
+    {
+     "icon": "bar-chart-2",
+     "text": "قراءات وموجة و spectrogram"
+    }
+   ]
+  },
+  {
+   "id": "linux",
+   "type": "diagram",
+   "vo": "g_linux",
+   "title": "على لينكس",
+   "icon": "ubuntu",
+   "sub": "جوه PipeWire",
+   "nodes": [
+    {
+     "id": "mic",
+     "label": "المايك",
+     "icon": "mic",
+     "tech": "system default",
+     "x": 1650,
+     "y": 420
+    },
+    {
+     "id": "rn",
+     "label": "عزل الضوضاء",
+     "icon": "magic",
+     "tech": "RNNoise ×2",
+     "x": 1240,
+     "y": 420
+    },
+    {
+     "id": "eq",
+     "label": "الصوت",
+     "icon": "equalizer-2",
+     "tech": "EQ + compressor",
+     "x": 830,
+     "y": 420
+    },
+    {
+     "id": "lim",
+     "label": "الحماية",
+     "icon": "shield-check",
+     "tech": "limiter −2 dB",
+     "x": 420,
+     "y": 420
+    },
+    {
+     "id": "out",
+     "label": "مايك وهمي",
+     "icon": "mic-2",
+     "tech": "Mic Clean",
+     "x": 420,
+     "y": 760
+    },
+    {
+     "id": "apps",
+     "label": "البرامج",
+     "icon": "vidicon",
+     "tech": "Zoom · OBS · Meet",
+     "x": 830,
+     "y": 760
+    }
+   ],
+   "edges": [
+    {
+     "from": "mic",
+     "to": "rn"
+    },
+    {
+     "from": "rn",
+     "to": "eq"
+    },
+    {
+     "from": "eq",
+     "to": "lim"
+    },
+    {
+     "from": "lim",
+     "to": "out"
+    },
+    {
+     "from": "out",
+     "to": "apps"
+    }
+   ],
+   "flow": [
+    {
+     "from": "mic",
+     "to": "rn",
+     "text": "الصوت داخل من المايك الافتراضي",
+     "vo": "g_linux"
+    },
+    {
+     "from": "rn",
+     "to": "eq",
+     "text": "RNNoise مرتين بيشيل الضوضاء"
+    },
+    {
+     "from": "eq",
+     "to": "lim",
+     "text": "EQ و compressor، وبعدين limiter"
+    },
+    {
+     "from": "lim",
+     "to": "out",
+     "text": "بيطلع مايك وهمي اسمه Mic Clean"
+    },
+    {
+     "from": "out",
+     "to": "apps",
+     "text": "تختاره في زوم أو OBS"
+    }
+   ]
+  },
+  {
+   "id": "macwin",
+   "type": "diagram",
+   "vo": "g_macwin",
+   "title": "على الماك وويندوز",
+   "icon": "computer",
+   "sub": "جوه شباك الأبلكيشن",
+   "nodes": [
+    {
+     "id": "mic",
+     "label": "المايك",
+     "icon": "mic",
+     "tech": "system default",
+     "x": 1700,
+     "y": 480
+    },
+    {
+     "id": "win",
+     "label": "شباك الأبلكيشن",
+     "icon": "window-2",
+     "tech": "Web Audio + RNNoise WASM",
+     "x": 1200,
+     "y": 480
+    },
+    {
+     "id": "cable",
+     "label": "الكابل الوهمي",
+     "icon": "plug",
+     "tech": "BlackHole · VB-CABLE",
+     "x": 700,
+     "y": 480
+    },
+    {
+     "id": "apps",
+     "label": "البرامج",
+     "icon": "vidicon",
+     "tech": "Zoom · OBS · Meet",
+     "x": 230,
+     "y": 480
+    },
+    {
+     "id": "srv",
+     "label": "السيرفر المحلي",
+     "icon": "server",
+     "tech": "Node.js · 127.0.0.1",
+     "x": 1200,
+     "y": 800
+    }
+   ],
+   "edges": [
+    {
+     "from": "mic",
+     "to": "win"
+    },
+    {
+     "from": "win",
+     "to": "cable",
+     "label": "setSinkId",
+     "ly": -46
+    },
+    {
+     "from": "cable",
+     "to": "apps"
+    },
+    {
+     "from": "win",
+     "to": "srv",
+     "label": "الإعدادات والأجهزة",
+     "lx": 150
+    }
+   ],
+   "flow": [
+    {
+     "from": "mic",
+     "to": "win",
+     "text": "الشباك بياخد صوت المايك",
+     "vo": "g_macwin"
+    },
+    {
+     "from": "win",
+     "to": "srv",
+     "text": "والسيرفر بيعرف الأجهزة ويحفظ الإعدادات"
+    },
+    {
+     "from": "win",
+     "to": "cable",
+     "text": "الصوت النضيف بيطلع على الكابل الوهمي"
+    },
+    {
+     "from": "cable",
+     "to": "apps",
+     "text": "والبرامج بتسجّل منه"
+    }
+   ]
+  },
+  {
+   "id": "layers",
+   "type": "bullets",
+   "vo": "n18",
+   "title": "الكود من جوه",
+   "icon": "stack",
+   "sub": "modular monolith",
+   "items": [
+    {
+     "icon": "settings-4",
+     "text": "core",
+     "sub": "config · exec · http"
+    },
+    {
+     "icon": "apps-2",
+     "text": "modules",
+     "sub": "linux · mac · windows · deps · settings"
+    },
+    {
+     "icon": "share-circle",
+     "text": "shared/presets.js",
+     "sub": "السيرفر والواجهة بيقروا نفس الأوضاع"
+    },
+    {
+     "icon": "computer",
+     "text": "electron + public",
+     "sub": "الشباك والتراي والواجهة"
+    }
+   ]
+  },
+  {
+   "id": "code",
+   "type": "code",
+   "vo": "g_code",
+   "title": "المايك الافتراضي",
+   "icon": "code-s-slash",
+   "sub": "src/modules/linux/default-mic.js",
+   "code": "async function resolveInput() {\n  if (settings.master && !isOurs(settings.master)) return settings.master;\n  const def = await systemDefault();\n  if (!isOurs(def)) return def;          // the mic the system already uses\n  return settings.previousDefault || firstHardwareMic();\n}\n\nasync function restore() {               // when Mic Clean stops\n  if (!isOurs(await systemDefault())) return;\n  await run('pactl', ['set-default-source', previousDefault]);\n}",
+   "highlight": [
+    {
+     "lines": [
+      3,
+      4
+     ],
+     "vo": "g_code"
+    },
+    {
+     "lines": [
+      8,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "id": "outro",
+   "type": "outro",
+   "vo": "n21",
+   "title": "Mic Clean",
+   "sub": "صوتك نضيف، من أي مايك",
+   "tiles": [
+    {
+     "icon": "ubuntu",
+     "text": "Linux"
+    },
+    {
+     "icon": "apple",
+     "text": "macOS"
+    },
+    {
+     "icon": "windows",
+     "text": "Windows"
+    },
+    {
+     "icon": "github",
+     "text": "مفتوح المصدر"
+    }
+   ],
+   "url": "mohamedjs.github.io/mic-clean"
+  }
+ ]
 }

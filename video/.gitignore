@@ -11,3 +11,4 @@ tts.log
 timing.json
 .demo-*
 __pycache__/
+preview/

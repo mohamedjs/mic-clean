@@ -466,7 +466,7 @@ function levelAdvice(peakDb, floor, voice) {
   if (stats.hist.length < 120) return ['بيقيس… اتكلم شوية واسكت شوية.', ''];
   if (stats.peakHold > -1) return ['🔴 فيه تكسير (clipping): وطّي جين المايك الحقيقي لحد ما الـ Peak يفضل تحت −3 dB.', 'bad'];
   if (voice < -40) return ['صوتك واطي: علّي جين المايك الحقيقي لحد ما الكلام يوصل من −24 لـ −12 dB في الـ RMS.', 'warn'];
-  if (floor > -45) return ['⚠ الضوضاء عالية وانت ساكت. جرّب B (Mic (clean)) أو علّي قوة البوابة (VAD).', 'warn'];
+  if (floor > -45) return ['⚠ الضوضاء عالية وانت ساكت. جرّب Mic Clean في B، أو علّي قوة البوابة (VAD).', 'warn'];
   if (voice - floor < 25) return ['النقاء ضعيف: الكلام قريب من الضوضاء. قرّب من المايك أو قوّي العزل.', 'warn'];
   if (floor < -65 && voice - floor > 40) return ['✔ ممتاز: الضوضاء واطية جدًا وصوتك واضح.', 'good'];
   return ['✔ كويس: المستوى والنقاء مقبولين.', 'good'];

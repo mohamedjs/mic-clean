@@ -48,6 +48,10 @@ def main():
         for attempt in range(5):
             try:
                 pcm, rate = fn(L, k, model, a.voice)
+                # Gemini TTS sometimes reads the line and then keeps going with ~20 s of non-speech.
+                # Spoken Egyptian Arabic here runs at about 12 characters a second; reject takes far longer than that.
+                secs, expect = len(pcm) / 2 / rate, max(3.0, len(L['text']) / 12)
+                if secs > expect * 1.8: raise RuntimeError(f'take is {secs:.1f} s, expected about {expect:.1f} s')
                 with wave.open(str(f), 'wb') as w: w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate); w.writeframes(pcm)
                 print('✓', L['id'], flush=True); break
             except urllib.error.HTTPError as e:
