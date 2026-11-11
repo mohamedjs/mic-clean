@@ -399,9 +399,7 @@
     },
     {
      "from": "win",
-     "to": "cable",
-     "label": "setSinkId",
-     "ly": -46
+     "to": "cable"
     },
     {
      "from": "cable",

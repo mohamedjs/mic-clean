@@ -36,6 +36,6 @@
                  { "eval": "document.querySelector('[data-tab=monitor]').click()" }, { "wait": 500 },
                  { "eval": "document.getElementById('micBtn').click()" }, { "wait": 2000 },
                  { "eval": "(async()=>{const ds=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='audioinput');const a=ds.find(x=>/demomic|demo/i.test(x.label)),b=ds.find(x=>/mic clean/i.test(x.label));const A=document.getElementById('devA'),B=document.getElementById('devB');if(a){A.value=a.deviceId;A.dispatchEvent(new Event('change'))}if(b){B.value=b.deviceId;B.dispatchEvent(new Event('change'))}document.getElementById('abA').click();document.getElementById('cbCard').scrollIntoView({block:'start'});scrollBy(0,330)})()" }, { "wait": 1500 } ],
-      "steps": [ { "move": "#abA" }, { "wait": 12150 }, { "click": "#abB" } ] }
+      "steps": [ { "move": "#abA" }, { "wait": 13200 }, { "click": "#abB" } ] }
   ]
 }

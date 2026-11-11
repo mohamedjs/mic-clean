@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(cd .. && pwd)
 ST=$(mktemp -d)
-echo '{"settingsVersion":3,"master":"demo_mic","makeDefault":false}' > "$ST/settings.json"
+echo "{\"settingsVersion\":3,\"master\":\"demo_mic\",\"makeDefault\":false${EXTRA:+,$EXTRA}}" > "$ST/settings.json"
 bash tools/demo-mic.sh up
 ( cd "$ROOT" && PORT=4796 MIC_STATE_DIR="$ST" exec node server.js ) > "$ST/server.log" 2>&1 &
 SRV=$!

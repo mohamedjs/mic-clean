@@ -12,3 +12,6 @@ timing.json
 .demo-*
 __pycache__/
 preview/
+vo_gemini_takes/
+vo_el/
+*.skill
