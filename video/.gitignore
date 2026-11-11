@@ -1,0 +1,13 @@
+node_modules/
+out/
+clips/
+raw/
+*.mp4
+audio/
+vo/
+vo_gemini/
+demo_src/
+tts.log
+timing.json
+.demo-*
+__pycache__/

@@ -43,8 +43,10 @@ const openAtLogin = () => prefs().openAtLogin !== false;
 
 // ---- window ----------------------------------------------------------------------
 function createWindow() {
+  // MIC_CLEAN_WINDOW=1440x810: exact content size (used to film the explainer video)
+  const [w, h] = (process.env.MIC_CLEAN_WINDOW || '1180x860').split('x').map(Number);
   win = new BrowserWindow({
-    width: 1180, height: 860, minWidth: 380, minHeight: 520,
+    width: w, height: h, useContentSize: !!process.env.MIC_CLEAN_WINDOW, minWidth: 380, minHeight: 520,
     title: 'Mic Clean', icon: ICON, show: !HIDDEN, autoHideMenuBar: true, backgroundColor: '#ebe8f7',
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false, spellcheck: false },
   });

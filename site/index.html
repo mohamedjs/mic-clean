@@ -3,216 +3,177 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mic (Mohamed)</title>
-<meta name="description" content="مايك نضيف زي البودكاست على لينكس وماك وويندوز: عزل ضوضاء RNNoise مزدوج، EQ، ضاغط وليميتر، لأي مايك.">
-<meta property="og:title" content="Mic (Mohamed) — مايك نضيف زي البودكاست">
-<meta property="og:description" content="عزل ضوضاء RNNoise مزدوج وEQ وضاغط وليميتر، على لينكس وماك وويندوز، لأي مايك.">
-<meta property="og:image" content="https://mohamedjs.github.io/mic-clean/icons/icon-512.png">
+<title>Mic Clean</title>
+<meta name="description" content="Any mic, studio clean. Double RNNoise, EQ, compressor and limiter as a virtual mic for Zoom, Meet, OBS and Discord, on Linux, macOS and Windows. مايك نضيف زي البودكاست من أي مايك.">
+<meta property="og:title" content="Mic Clean · Any mic, studio clean">
+<meta property="og:description" content="Double RNNoise, EQ, compressor and limiter as a virtual mic, on Linux, macOS and Windows. Free and open source.">
+<meta property="og:image" content="https://mohamedjs.github.io/mic-clean/assets/og.png">
 <meta property="og:url" content="https://mohamedjs.github.io/mic-clean/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ar_EG">
-<meta name="twitter:card" content="summary">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://mohamedjs.github.io/mic-clean/">
+<link rel="alternate" hreflang="ar" href="https://mohamedjs.github.io/mic-clean/?lang=ar">
+<link rel="alternate" hreflang="en" href="https://mohamedjs.github.io/mic-clean/?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://mohamedjs.github.io/mic-clean/">
 <meta name="theme-color" content="#ebe8f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#24223a" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap">
-<style>
-:root{
-  --bg:#ebe8f7; --card:#f7f5ff; --card2:#efecfb; --text:#3a3558; --muted:#6c6790;
-  --sh-dark:rgba(150,140,200,.45); --sh-light:rgba(255,255,255,.95);
-  --in-dark:rgba(150,140,200,.28); --in-light:rgba(255,255,255,.85);
-  --peach:#ff9e7d; --peach-d:#c95a3c; --mint:#6fd3b3; --sky:#86bdfc; --lilac:#b7a2ff; --sun:#ffd46b; --rose:#ff8fa3;
-  --screen:#2b2842; --screen-text:#e9e6ff;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  color-scheme:light;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#24223a; --card:#2e2b48; --card2:#35325a; --text:#ecebff; --muted:#b3aed6;
-    --sh-dark:rgba(8,6,20,.55); --sh-light:rgba(90,84,140,.35);
-    --in-dark:rgba(8,6,20,.35); --in-light:rgba(120,112,180,.25);
-    --peach-d:#ffb59b; --screen:#1a1830; color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#24223a; --card:#2e2b48; --card2:#35325a; --text:#ecebff; --muted:#b3aed6;
-  --sh-dark:rgba(8,6,20,.55); --sh-light:rgba(90,84,140,.35);
-  --in-dark:rgba(8,6,20,.35); --in-light:rgba(120,112,180,.25);
-  --peach-d:#ffb59b; --screen:#1a1830; color-scheme:dark;
-}
-*{box-sizing:border-box}
-html,body{overflow-x:hidden}
-body{margin:0;background:var(--bg);color:var(--text);font:16px/1.75 "Cairo","Noto Sans Arabic",system-ui,sans-serif}
-a{color:inherit}
-.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
-.clay{background:var(--card);border-radius:28px;box-shadow:12px 12px 26px var(--sh-dark),-10px -10px 22px var(--sh-light),inset 4px 4px 8px var(--in-light),inset -4px -4px 8px var(--in-dark)}
-.pressed{background:var(--card2);border-radius:18px;box-shadow:inset 5px 5px 10px var(--in-dark),inset -5px -5px 10px var(--in-light)}
-nav{display:flex;align-items:center;gap:12px;padding:18px 0}
-nav img{width:40px;height:40px;border-radius:12px}
-nav b{font-size:18px}
-nav .sp{flex:1}
-nav a.gh{font-weight:600;text-decoration:none;padding:8px 16px}
-.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:32px;align-items:center;padding:28px 0 48px}
-h1{font-size:clamp(30px,6vw,52px);line-height:1.25;margin:0 0 14px;font-weight:800}
-h1 em{font-style:normal;color:var(--peach-d)}
-.lead{font-size:18px;color:var(--muted);margin:0 0 26px}
-.btns{display:flex;flex-wrap:wrap;gap:14px}
-.btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;font:inherit;font-weight:800;text-decoration:none;padding:13px 24px;border-radius:20px;color:#2e1508;background:var(--peach);
-  box-shadow:6px 6px 14px var(--sh-dark),-5px -5px 12px var(--sh-light),inset 3px 3px 6px rgba(255,255,255,.45),inset -3px -3px 6px rgba(0,0,0,.12)}
-.btn.alt{background:var(--card);color:var(--text)}
-.btn:hover{transform:translateY(-2px)}
-.chain{padding:22px}
-.stage{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:8px 0;font-weight:600}
-.stage i{font-style:normal;width:36px;height:36px;display:grid;place-items:center;border-radius:12px;flex:none}
-.arrow{text-align:center;color:var(--muted);font-size:13px;line-height:1}
-section{padding:36px 0}
-h2{font-size:clamp(24px,4vw,32px);margin:0 0 8px;font-weight:800}
-.sub{color:var(--muted);margin:0 0 24px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px}
-.feat{padding:22px}
-.feat .e{font-size:30px;line-height:1}
-.feat h3{margin:10px 0 4px;font-size:18px}
-.feat p{margin:0;color:var(--muted);font-size:15px}
-.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-.tab{border:0;font:inherit;font-weight:800;cursor:pointer;padding:10px 20px;border-radius:18px;background:var(--card);color:var(--text);box-shadow:5px 5px 12px var(--sh-dark),-4px -4px 10px var(--sh-light)}
-.tab[aria-selected="true"]{background:var(--sky);color:#13294a;box-shadow:inset 4px 4px 9px rgba(0,0,0,.18),inset -3px -3px 8px rgba(255,255,255,.35)}
-.panel{padding:24px}
-.panel[hidden]{display:none}
-.panel ol{margin:0;padding-inline-start:22px}
-.panel li{margin:8px 0}
-pre{direction:ltr;text-align:left;background:var(--screen);color:var(--screen-text);font:14px/1.6 var(--mono);padding:14px 16px;border-radius:16px;overflow-x:auto;margin:10px 0;white-space:pre}
-code{font-family:var(--mono);font-size:.92em;direction:ltr;unicode-bidi:isolate}
-.scenes{display:flex;flex-wrap:wrap;gap:12px}
-.scene{padding:10px 16px;font-weight:600}
-.scene.on{background:var(--peach);color:#2e1508}
-table{width:100%;border-collapse:collapse;font-size:15px}
-th,td{padding:12px 10px;text-align:start;border-bottom:1px solid var(--in-dark)}
-th{color:var(--muted);font-weight:600}
-.tbl{padding:8px 18px;overflow-x:auto}
-footer{padding:40px 0 56px;color:var(--muted);text-align:center;font-size:14px}
-@media (max-width:760px){.hero{grid-template-columns:1fr}.lead{font-size:16px}}
-</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&family=Inter:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="site.css">
+<script>
+  // language before first paint: ?lang= → saved → browser
+  (function () {
+    var q = new URLSearchParams(location.search).get('lang'), s = null;
+    try { s = localStorage.getItem('lang'); } catch (e) {}
+    var l = q || s || ((navigator.language || '').slice(0, 2) === 'ar' ? 'ar' : 'en');
+    if (l !== 'ar' && l !== 'en') l = 'en';
+    document.documentElement.lang = l; document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+    try { var t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  })();
+</script>
 </head>
 <body>
 <div class="wrap">
   <nav>
-    <img src="icons/icon-192.png" alt="">
-    <b>Mic (Mohamed)</b>
+    <img src="icons/icon-192.png" alt="" width="40" height="40">
+    <b>Mic Clean</b>
     <span class="sp"></span>
+    <a class="navlink" href="#download" data-i18n="nav.download"></a>
+    <a class="navlink" href="#how" data-i18n="nav.how"></a>
+    <div class="seg clay" id="lang" role="group" aria-label="Language"><button data-value="en">EN</button><button data-value="ar">ع</button></div>
+    <button class="icon clay" id="theme" aria-label="Theme">◐</button>
     <a class="gh clay" href="https://github.com/mohamedjs/mic-clean">GitHub</a>
   </nav>
 
   <header class="hero">
     <div>
-      <h1>صوتك <em>نضيف زي البودكاست</em>، من أي مايك.</h1>
-      <p class="lead">بيشيل الدوشة والتكييف والكيبورد، ويظبط علو صوتك ويحميه من التكسير. شغال على لينكس وماك وويندوز، ومع زوم وتيمز وOBS وديسكورد.</p>
+      <h1><span data-i18n="hero.t1"></span> <em data-i18n="hero.t2"></em></h1>
+      <p class="lead" data-i18n="hero.lead"></p>
       <div class="btns">
-        <a class="btn" href="#install">⬇ سطّبه دلوقتي</a>
-        <a class="btn alt" href="https://github.com/mohamedjs/mic-clean">الكود على GitHub</a>
+        <a class="btn" id="heroDl" href="#download">⬇ <span id="heroDlText" data-i18n="hero.dl"></span></a>
+        <a class="btn alt" href="#download" data-i18n="hero.other"></a>
       </div>
+      <p class="tiny" id="ver"></p>
     </div>
-    <div class="clay chain" aria-label="مراحل التنضيف">
-      <div class="stage pressed"><i style="background:var(--sky)">🎤</i>المايك بتاعك (USB · XLR · لابتوب · بلوتوث)</div>
-      <div class="arrow">▼</div>
-      <div class="stage pressed"><i style="background:var(--mint)">🧹</i>RNNoise ١ ← RNNoise ٢ (عزل مزدوج)</div>
-      <div class="arrow">▼</div>
-      <div class="stage pressed"><i style="background:var(--sun)">🎛</i>EQ عشر درجات ← ضاغط</div>
-      <div class="arrow">▼</div>
-      <div class="stage pressed"><i style="background:var(--rose)">🛡</i>ليميتر −2 dB (مفيش تكسير)</div>
-      <div class="arrow">▼</div>
-      <div class="stage pressed"><i style="background:var(--lilac)">🎙</i>Mic (Mohamed) ← زوم / OBS</div>
-    </div>
+    <figure class="shot clay">
+      <img src="assets/app-home.png" alt="Mic Clean" width="1180" height="860" id="heroShot">
+    </figure>
   </header>
 
+  <section id="video">
+    <h2 data-i18n="video.t"></h2>
+    <p class="sub" data-i18n="video.sub"></p>
+    <div class="clay videobox">
+      <video controls preload="metadata" playsinline poster="assets/video-poster.png">
+        <source src="assets/mic-clean-explainer.mp4" type="video/mp4">
+      </video>
+    </div>
+  </section>
+
   <section>
-    <h2>بيعمل إيه</h2>
-    <p class="sub">كل حاجة بتشتغل على جهازك. مفيش حساب ولا سيرفر برّه.</p>
+    <h2 data-i18n="feat.t"></h2>
     <div class="grid">
-      <div class="clay feat"><div class="e">🧹</div><h3>عزل ضوضاء مزدوج</h3><p>RNNoise مرتين: الأولى بتشيل الدوشة وبتكتم السكوت، والتانية بتشيل البواقي من غير ما الصوت يبقى روبوتي.</p></div>
-      <div class="clay feat"><div class="e">🎚</div><h3>EQ وضاغط</h3><p>صوت دافي وواضح، وعلو ثابت سواء بتتكلم بهدوء أو بصوت عالي.</p></div>
-      <div class="clay feat"><div class="e">🎧</div><h3>اسمع وقارن</h3><p>مقارنة A/B مباشرة، وتسمع نفسك بالهيدفون، وموجة وspectrogram وانت بتظبط.</p></div>
-      <div class="clay feat"><div class="e">🔌</div><h3>أي مايك</h3><p>بيختار مايك الـ USB لوحده، وبيدعم كروت الصوت ذات المدخلين، ولو فصلت المايك ورجعته بيكمّل لوحده.</p></div>
+      <div class="clay feat"><div class="e">🧹</div><h3 data-i18n="feat.rn.t"></h3><p data-i18n="feat.rn.d"></p></div>
+      <div class="clay feat"><div class="e">🎛</div><h3 data-i18n="feat.chain.t"></h3><p data-i18n="feat.chain.d"></p></div>
+      <div class="clay feat"><div class="e">🎙</div><h3 data-i18n="feat.default.t"></h3><p data-i18n="feat.default.d"></p></div>
+      <div class="clay feat"><div class="e">🎧</div><h3 data-i18n="feat.ab.t"></h3><p data-i18n="feat.ab.d"></p></div>
+      <div class="clay feat"><div class="e">🧰</div><h3 data-i18n="feat.deps.t"></h3><p data-i18n="feat.deps.d"></p></div>
+      <div class="clay feat"><div class="e">🔒</div><h3 data-i18n="feat.local.t"></h3><p data-i18n="feat.local.d"></p></div>
     </div>
   </section>
 
   <section>
-    <h2>أوضاع جاهزة</h2>
-    <p class="sub">الافتراضي <b>🎙 بودكاست</b>. دوسة واحدة وتغيّر الوضع، وكل الإعدادات تتظبط مع بعض.</p>
+    <h2 data-i18n="scenes.t"></h2>
+    <p class="sub" data-i18n="scenes.sub"></p>
     <div class="scenes">
-      <span class="scene clay on">🎙 بودكاست</span><span class="scene clay">🎓 تسجيل شرح</span><span class="scene clay">💼 اجتماعات</span>
-      <span class="scene clay">🎮 ستريم</span><span class="scene clay">🚧 مكان دوشة</span><span class="scene clay">🌿 طبيعي</span>
+      <span class="clay scene on" data-i18n="scenes.podcast"></span>
+      <span class="clay scene" data-i18n="scenes.lecture"></span>
+      <span class="clay scene" data-i18n="scenes.meeting"></span>
+      <span class="clay scene" data-i18n="scenes.stream"></span>
+      <span class="clay scene" data-i18n="scenes.noisy"></span>
+      <span class="clay scene" data-i18n="scenes.natural"></span>
+    </div>
+    <div class="shots">
+      <figure class="clay"><img loading="lazy" src="assets/app-tune.png" alt="" width="1180" height="860"><figcaption data-i18n="shot.tune"></figcaption></figure>
+      <figure class="clay"><img loading="lazy" src="assets/app-monitor.png" alt="" width="1180" height="860"><figcaption data-i18n="shot.monitor"></figcaption></figure>
     </div>
   </section>
 
-  <section id="install">
-    <h2>التسطيب</h2>
-    <p class="sub">محتاج <b>Node.js 18+</b> بس، من غير <code>npm install</code>. نزّل الكود الأول:</p>
-    <pre>git clone https://github.com/mohamedjs/mic-clean.git
-cd mic-clean</pre>
-    <p class="sub">أو <a href="https://github.com/mohamedjs/mic-clean/archive/refs/heads/main.zip">نزّله ZIP</a>. وبعدين اختار نظامك:</p>
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-os="linux" aria-selected="true">🐧 لينكس</button>
-      <button class="tab" role="tab" data-os="mac" aria-selected="false">🍏 ماك</button>
-      <button class="tab" role="tab" data-os="win" aria-selected="false">🪟 ويندوز</button>
+  <section id="download">
+    <h2 data-i18n="dl.t"></h2>
+    <p class="sub" data-i18n="dl.sub"></p>
+    <div class="grid dl">
+      <article class="clay platform" data-os="mac">
+        <div class="os-head"><span class="os-e">🍏</span><h3>macOS</h3><span class="badge" data-i18n="dl.yours"></span></div>
+        <p class="hint" data-i18n="dl.mac.req"></p>
+        <div class="cmd"><code>brew tap mohamedjs/mic-clean https://github.com/mohamedjs/mic-clean</code><button class="copy" data-i18n="dl.copy"></button></div>
+        <div class="cmd"><code>brew install --cask mic-clean</code><button class="copy" data-i18n="dl.copy"></button></div>
+        <a class="btn block" data-asset="Mic-Clean-macos-arm64.dmg" data-i18n="dl.mac.arm"></a>
+        <a class="btn alt block" data-asset="Mic-Clean-macos-x64.dmg" data-i18n="dl.mac.intel"></a>
+        <p class="note"><span data-i18n="dl.mac.note"></span> <a href="#mac-first" data-i18n="dl.mac.how"></a></p>
+      </article>
+      <article class="clay platform" data-os="windows">
+        <div class="os-head"><span class="os-e">🪟</span><h3>Windows</h3><span class="badge" data-i18n="dl.yours"></span></div>
+        <p class="hint" data-i18n="dl.win.req"></p>
+        <a class="btn block" data-asset="Mic-Clean-Setup-windows-x64.exe" data-i18n="dl.win.exe"></a>
+        <a class="btn alt block" href="https://vb-audio.com/Cable/" target="_blank" rel="noopener" data-i18n="dl.win.cable"></a>
+        <p class="note" data-i18n="dl.win.note"></p>
+      </article>
+      <article class="clay platform" data-os="linux">
+        <div class="os-head"><span class="os-e">🐧</span><h3>Linux</h3><span class="badge" data-i18n="dl.yours"></span></div>
+        <p class="hint" data-i18n="dl.linux.req"></p>
+        <a class="btn block" data-asset="Mic-Clean-linux-amd64.deb" data-i18n="dl.linux.deb"></a>
+        <a class="btn alt block" data-asset="Mic-Clean-linux-x86_64.AppImage" data-i18n="dl.linux.app"></a>
+        <div class="cmd"><code>sudo apt install ./Mic-Clean-linux-amd64.deb</code><button class="copy" data-i18n="dl.copy"></button></div>
+        <p class="note" data-i18n="dl.linux.note"></p>
+      </article>
     </div>
-    <div class="clay panel" data-panel="linux">
-      <ol>
-        <li>شغّل السكريبت. هيعمل خدمة بتقوم مع الجهاز:<pre>bash install-linux.sh</pre></li>
-        <li>للضاغط والليميتر (اختياري):<pre>sudo apt install swh-plugins        # Ubuntu / Debian
-sudo dnf install ladspa-swh-plugins # Fedora
-sudo pacman -S swh-plugins          # Arch</pre></li>
-        <li>في البرامج اختار المايك <b>Mic (Mohamed)</b>. التنضيف بيحصل في PipeWire، فمش لازم الداشبورد تفضل مفتوحة.</li>
-      </ol>
-    </div>
-    <div class="clay panel" data-panel="mac" hidden>
-      <ol>
-        <li>شغّل السكريبت. هيسطّب BlackHole وswitchaudio-osx بـ Homebrew:<pre>bash install-mac.sh</pre></li>
-        <li>اعمل Restart مرة واحدة لو BlackHole لسه متسطب.</li>
-        <li>في الداشبورد: الدخل = المايك بتاعك، الخرج = <b>BlackHole 2ch</b>، ودوس «▶ شغّل».</li>
-        <li>في زوم/OBS اختار المايك <b>BlackHole 2ch</b>. سيب الأبلكيشن مفتوح (ممكن تصغّره). يشتغل على Chrome أو Edge.</li>
-      </ol>
-    </div>
-    <div class="clay panel" data-panel="win" hidden>
-      <ol>
-        <li>نزّل <a href="https://vb-audio.com/Cable/">VB-CABLE</a> (مجاني)، وشغّل <code>VBCABLE_Setup_x64.exe</code> كـ Administrator، واعمل Restart.</li>
-        <li>شغّل السكريبت في PowerShell. هيتأكد من Node ويخلّي السيرفر يقوم مع الجهاز:<pre>powershell -ExecutionPolicy Bypass -File install-windows.ps1</pre></li>
-        <li>في الداشبورد: الدخل = المايك بتاعك، الخرج = <b>CABLE Input</b>، ودوس «▶ شغّل».</li>
-        <li>في زوم/تيمز/ديسكورد/OBS اختار المايك <b>CABLE Output (VB-Audio Virtual Cable)</b>. سيب الأبلكيشن مفتوح. يشتغل على Chrome أو Edge.</li>
-      </ol>
+    <p class="center hint"><a href="https://github.com/mohamedjs/mic-clean/releases" target="_blank" rel="noopener" data-i18n="dl.all"></a> · <a href="https://github.com/mohamedjs/mic-clean/releases/latest/download/SHA256SUMS.txt" target="_blank" rel="noopener">SHA256SUMS</a></p>
+  </section>
+
+  <section id="mac-first">
+    <h2 data-i18n="mac.t"></h2>
+    <p class="sub" data-i18n="mac.sub"></p>
+    <div class="grid three">
+      <div class="clay step"><span class="badge rec" data-i18n="mac.brew.badge"></span><h3 data-i18n="mac.brew.t"></h3><p data-i18n="mac.brew.d"></p></div>
+      <div class="clay step"><h3 data-i18n="mac.dmg.t"></h3><ol><li data-i18n="mac.dmg.1"></li><li data-i18n="mac.dmg.2"></li><li data-i18n="mac.dmg.3"></li><li data-i18n="mac.dmg.4"></li></ol>
+        <p data-i18n="mac.dmg.or"></p><div class="cmd"><code>xattr -dr com.apple.quarantine "/Applications/Mic Clean.app"</code><button class="copy" data-i18n="dl.copy"></button></div></div>
+      <div class="clay step"><h3 data-i18n="mac.bh.t"></h3><p data-i18n="mac.bh.d"></p><div class="cmd"><code>brew install --cask blackhole-2ch</code><button class="copy" data-i18n="dl.copy"></button></div><p class="note" data-i18n="mac.perm"></p></div>
     </div>
   </section>
 
-  <section>
-    <h2>بيشتغل إزاي على كل نظام</h2>
+  <section id="how">
+    <h2 data-i18n="how.t"></h2>
+    <p class="sub" data-i18n="how.sub"></p>
     <div class="clay tbl">
       <table>
-        <thead><tr><th></th><th>لينكس</th><th>ماك</th><th>ويندوز</th></tr></thead>
+        <thead><tr><th></th><th>🐧 Linux</th><th>🍏 macOS</th><th>🪟 Windows</th></tr></thead>
         <tbody>
-          <tr><th>التنضيف</th><td>PipeWire (على مستوى النظام)</td><td>جوه الداشبورد (RNNoise WASM)</td><td>جوه الداشبورد (RNNoise WASM)</td></tr>
-          <tr><th>المايك في البرامج</th><td>Mic (Mohamed)</td><td>BlackHole 2ch</td><td>CABLE Output</td></tr>
-          <tr><th>لازم يفضل مفتوح؟</th><td>لأ</td><td>أيوه</td><td>أيوه</td></tr>
-          <tr><th>بيقوم مع الجهاز</th><td>systemd --user</td><td>LaunchAgent</td><td>Startup shortcut</td></tr>
+          <tr><th data-i18n="how.where"></th><td data-i18n="how.where.l"></td><td data-i18n="how.where.m"></td><td data-i18n="how.where.m"></td></tr>
+          <tr><th data-i18n="how.needs"></th><td data-i18n="how.needs.l"></td><td data-i18n="how.needs.m"></td><td data-i18n="how.needs.w"></td></tr>
+          <tr><th data-i18n="how.pick"></th><td><b>Mic Clean</b></td><td><b>BlackHole 2ch</b></td><td><b>CABLE Output</b></td></tr>
+          <tr><th data-i18n="how.open"></th><td data-i18n="how.open.l"></td><td data-i18n="how.open.m"></td><td data-i18n="how.open.m"></td></tr>
         </tbody>
       </table>
     </div>
+    <pre class="flow" dir="ltr">your mic ─► high-pass ─► RNNoise ─► RNNoise ─► EQ ─► compressor ─► gain ─► limiter ─► Mic Clean ─► Zoom · Meet · OBS · Discord</pre>
   </section>
 
-  <footer>Mic (Mohamed) · MIT · <a href="https://github.com/mohamedjs/mic-clean">github.com/mohamedjs/mic-clean</a></footer>
+  <section id="faq">
+    <h2 data-i18n="faq.t"></h2>
+    <details class="clay qa"><summary data-i18n="faq.q1"></summary><p data-i18n="faq.a1"></p></details>
+    <details class="clay qa"><summary data-i18n="faq.q2"></summary><p data-i18n="faq.a2"></p></details>
+    <details class="clay qa"><summary data-i18n="faq.q3"></summary><p data-i18n="faq.a3"></p></details>
+    <details class="clay qa"><summary data-i18n="faq.q4"></summary><p data-i18n="faq.a4"></p></details>
+  </section>
+
+  <footer><span data-i18n="foot"></span> · <a href="https://github.com/mohamedjs/mic-clean">GitHub</a></footer>
 </div>
-<script>
-(() => {
-  const tabs = document.querySelectorAll('.tab'), panels = document.querySelectorAll('[data-panel]');
-  const show = (os) => {
-    tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.os === os)));
-    panels.forEach((p) => (p.hidden = p.dataset.panel !== os));
-  };
-  tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.os)));
-  const ua = navigator.userAgent;
-  show(/Windows/i.test(ua) ? 'win' : /Mac OS X|Macintosh/i.test(ua) ? 'mac' : 'linux');
-})();
-</script>
+<script src="site.js"></script>
 </body>
 </html>

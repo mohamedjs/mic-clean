@@ -1,0 +1,6 @@
+{
+  "name": "mic-clean-video",
+  "private": true,
+  "description": "The Mic Clean explainer video: a deterministic HTML stage rendered frame by frame (see README.md).",
+  "devDependencies": { "playwright": "1.64.1", "remixicon": "4.9.1", "@fontsource/tajawal": "5.3.0", "@fontsource/inter": "5.2.8" }
+}

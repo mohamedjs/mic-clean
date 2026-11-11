@@ -1,0 +1,41 @@
+{
+  "fps": 15,
+  "clips": [
+    { "id": "check", "seconds": 10, "env": { "MIC_PLATFORM": "darwin" },
+      "steps": [ { "wait": 700 }, { "move": "#setupCard h2" }, { "wait": 600 }, { "move": "#setupList .dep.required" }, { "wait": 900 },
+                 { "move": "#setupList .dep.required .copy" }, { "wait": 900 }, { "move": "#setupList .dep:nth-child(2)" } ] },
+
+    { "id": "home", "seconds": 10,
+      "steps": [ { "wait": 600 }, { "move": "#master" }, { "wait": 1000 }, { "move": "#makeDefault" }, { "wait": 500 },
+                 { "click": "#startBtn" }, { "wait": 1500 }, { "move": "#engineState" }, { "wait": 1200 }, { "scroll": 420 } ],
+      "after": "sleep 1" },
+
+    { "id": "scenes", "seconds": 10,
+      "setup": [ { "eval": "document.getElementById('dnScenes').scrollIntoView({block:'center'})" }, { "wait": 500 } ],
+      "steps": [ { "wait": 400 }, { "click": "[data-scene=meeting]" }, { "wait": 900 }, { "click": "[data-scene=stream]" }, { "wait": 900 },
+                 { "click": "[data-scene=noisy]" }, { "wait": 900 }, { "click": "[data-scene=podcast]" }, { "wait": 600 } ] },
+
+    { "id": "tune", "seconds": 9,
+      "setup": [ { "eval": "document.querySelector('[data-tab=tune]').click(); scrollTo(0,0)" }, { "wait": 600 } ],
+      "steps": [ { "move": "#vadThreshold" }, { "wait": 700 }, { "scroll": 500 }, { "move": "#dnStage2" }, { "wait": 500 }, { "scroll": 700 },
+                 { "move": "#eq" }, { "wait": 600 }, { "scroll": 600 } ] },
+
+    { "id": "monitor", "seconds": 10,
+      "settings": { "master": "demo_mic", "makeDefault": false },
+      "before": "bash tools/demo-mic.sh up && bash tools/demo-mic.sh play", "after": "bash tools/demo-mic.sh down",
+      "setup": [ { "eval": "fetch('/api/clean/start',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})" }, { "wait": 1500 },
+                 { "eval": "document.querySelector('[data-tab=monitor]').click()" }, { "wait": 500 },
+                 { "eval": "document.getElementById('micBtn').click()" }, { "wait": 2000 },
+                 { "eval": "(async()=>{const ds=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='audioinput');const a=ds.find(x=>/demomic|demo/i.test(x.label)),b=ds.find(x=>/mic clean/i.test(x.label));const A=document.getElementById('devA'),B=document.getElementById('devB');if(a){A.value=a.deviceId;A.dispatchEvent(new Event('change'))}if(b){B.value=b.deviceId;B.dispatchEvent(new Event('change'))}document.getElementById('abA').click();document.getElementById('cbCard').scrollIntoView({block:'start'});scrollBy(0,330)})()" }, { "wait": 1500 } ],
+      "steps": [ { "move": "#abA" }, { "wait": 1800 }, { "click": "#abB" }, { "wait": 2200 }, { "click": "#abA" }, { "wait": 1600 }, { "click": "#abB" } ] },
+
+    { "id": "ab", "seconds": 28,
+      "settings": { "master": "demo_mic", "makeDefault": false },
+      "before": "bash tools/demo-mic.sh up && bash tools/demo-mic.sh play", "after": "bash tools/demo-mic.sh down",
+      "setup": [ { "eval": "fetch('/api/clean/start',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})" }, { "wait": 1500 },
+                 { "eval": "document.querySelector('[data-tab=monitor]').click()" }, { "wait": 500 },
+                 { "eval": "document.getElementById('micBtn').click()" }, { "wait": 2000 },
+                 { "eval": "(async()=>{const ds=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind==='audioinput');const a=ds.find(x=>/demomic|demo/i.test(x.label)),b=ds.find(x=>/mic clean/i.test(x.label));const A=document.getElementById('devA'),B=document.getElementById('devB');if(a){A.value=a.deviceId;A.dispatchEvent(new Event('change'))}if(b){B.value=b.deviceId;B.dispatchEvent(new Event('change'))}document.getElementById('abA').click();document.getElementById('cbCard').scrollIntoView({block:'start'});scrollBy(0,330)})()" }, { "wait": 1500 } ],
+      "steps": [ { "move": "#abA" }, { "wait": "AB_SWITCH_MS" }, { "click": "#abB" } ] }
+  ]
+}
