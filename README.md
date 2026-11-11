@@ -54,6 +54,11 @@ macOS/Windows:  your mic ─► app window (Web Audio + RNNoise WASM, same chain
 
 ## Code layout
 
+![Mic Clean architecture](docs/mic-clean-architecture.png)
+
+The diagram can be edited in [excalidraw.com](https://excalidraw.com): open `docs/mic-clean-architecture.excalidraw`. To regenerate it, edit `docs/diagram/scene.js` and run `node docs/diagram/render.mjs docs`.
+
+
 A modular monolith with no runtime dependencies: Node.js 18+ and the browser, nothing else.
 
 ```

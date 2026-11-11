@@ -1,0 +1,21 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<script>window.EXCALIDRAW_ASSET_PATH = "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/";</script>
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"></script>
+<script src="scene.js"></script>
+</head><body>
+<script>
+window.build = async () => {
+  const L = ExcalidrawLib;
+  const elements = L.convertToExcalidrawElements(window.SCENE);
+  const appState = { exportBackground: true, viewBackgroundColor: "#ffffff", exportScale: 2, exportPadding: 30 };
+  const svg = await L.exportToSvg({ elements, appState, files: {} });
+  const blob = await L.exportToBlob({ elements, appState, files: {}, mimeType: "image/png", exportPadding: 30, getDimensions: (w, h) => ({ width: w * 2, height: h * 2, scale: 2 }) });
+  const png = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+  const json = L.serializeAsJSON(elements, { viewBackgroundColor: "#ffffff" }, {}, "local");
+  return { png, json, svg: svg.outerHTML };
+};
+</script>
+</body></html>
