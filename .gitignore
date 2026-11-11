@@ -3,3 +3,5 @@ npm-debug.log*
 .DS_Store
 *.swp
 *.swo
+dist/
+packaging/linux/ladspa/*.so
