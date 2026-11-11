@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 [ -d node_modules ] || npm ci
 [ "${1:-}" = "--film" ] && node tour.mjs tour.json && bash tools/record-demo.sh
 
-python3 tts.py lines.json vo/                       # Gemini TTS (free tier: 10 requests a day)
+python3 tts.py lines.json vo/ --provider "${TTS_PROVIDER:-gemini}"   # gemini (10 requests/day free) or elevenlabs (Egyptian voice Haz needs a paid plan)
 python3 build.py storyboard.json vo/                 # → timing.json, audio/mix.wav
 python3 - <<'EOF'
 import json, os

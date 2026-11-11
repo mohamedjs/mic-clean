@@ -35,13 +35,23 @@ def openrouter(line, k, model, voice):
     if 'json' in ctype: raise RuntimeError(raw[:300])
     return raw, int(m.group(1)) if (m := re.search(r'rate=(\d+)', ctype)) else 24000
 
+ELEVEN_MODEL, ELEVEN_VOICE = 'eleven_multilingual_v2', 'mXovlg4TtTSUsS5BeRYF'   # Haz: Egyptian Arabic, male (Ziad: 5REPlS2Ja1VZ7zNA0ykn)
+
+def elevenlabs(line, k, model, voice):
+    body = {'text': line['text'], 'model_id': model, 'voice_settings': {'stability': 0.5, 'similarity_boost': 0.75, 'style': 0.2}}
+    raw, ctype = post(f'https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=pcm_24000', body, {'xi-api-key': k})
+    if 'json' in ctype: raise RuntimeError(raw[:300])
+    return raw, 24000
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('lines'); ap.add_argument('out')
-    ap.add_argument('--provider', choices=['gemini', 'openrouter'], default='gemini'); ap.add_argument('--model')
-    ap.add_argument('--voice', default='Mako'); ap.add_argument('--only'); a = ap.parse_args()
+    ap.add_argument('--provider', choices=['gemini', 'openrouter', 'elevenlabs'], default='gemini'); ap.add_argument('--model')
+    ap.add_argument('--voice'); ap.add_argument('--only'); a = ap.parse_args()
     lines = json.loads(Path(a.lines).read_text()); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
-    k = key(a.provider); model = a.model or (GEMINI_MODEL if a.provider == 'gemini' else OPENROUTER_MODEL)
-    fn = gemini if a.provider == 'gemini' else openrouter
+    k = key(a.provider)
+    model = a.model or {'gemini': GEMINI_MODEL, 'openrouter': OPENROUTER_MODEL, 'elevenlabs': ELEVEN_MODEL}[a.provider]
+    a.voice = a.voice or (ELEVEN_VOICE if a.provider == 'elevenlabs' else 'Mako')
+    fn = {'gemini': gemini, 'openrouter': openrouter, 'elevenlabs': elevenlabs}[a.provider]
     for L in lines:
         f = out / f'{L["id"]}.wav'
         if (a.only and L['id'] != a.only) or f.exists(): continue
@@ -56,7 +66,7 @@ def main():
                 print('✓', L['id'], flush=True); break
             except urllib.error.HTTPError as e:
                 msg = e.read().decode('utf-8', 'replace')[:300]
-                if e.code in (400, 401, 403): sys.exit(f'{L["id"]}: HTTP {e.code} {msg}')   # wrong voice/model/key: fix, don't retry
+                if e.code in (400, 401, 402, 403): sys.exit(f'{L["id"]}: HTTP {e.code} {msg}')   # wrong voice/model/key: fix, don't retry
                 time.sleep(min(10 * 2 ** attempt, 120))
             except Exception as e:
                 print(' ', L['id'], e, flush=True); time.sleep(min(10 * 2 ** attempt, 120))
