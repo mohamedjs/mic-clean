@@ -7,7 +7,7 @@
 #   2) يشيل كل إعدادات الصوت الخاصة بيك (~/.config/pipewire, wireplumber, pulse)
 #      وخدمات/برامج الـ autostart اللي بتعمل فلاتر
 #   3) يمسح "ذاكرة" WirePlumber (الافتراضي القديم، الكتم، مستوى الصوت)
-#   4) يعيد تشغيل PipeWire ويخلي مايك الـ USB هو الافتراضي على 100%
+#   4) يعيد تشغيل PipeWire ويسيب المايك الافتراضي بتاع الجهاز (أو أول مايك حقيقي لو الافتراضي وهمي) على 100%
 #   5) يختبر المايك 3 ثواني ويقولك الصوت واصل ولا لأ
 #
 #  مفيش حاجة بتتمسح نهائي: كله بيتنقل لـ ~/audio-backup-<التاريخ>
@@ -27,7 +27,7 @@ KEYS='filter-chain|rnnoise|noise[_-]?suppress|echo-cancel|ladspa|deepfilter|nois
 # ---------------------------------------------------------------- 1
 say "1) بقفل الداشبورد وأي فلتر شغال"
 HAS_SVC=0
-if systemctl --user cat mic-mohamed.service >/dev/null 2>&1; then HAS_SVC=1; systemctl --user stop mic-mohamed.service && ok "وقفت خدمة الداشبورد مؤقتًا"; fi
+if systemctl --user cat mic-clean.service >/dev/null 2>&1; then HAS_SVC=1; systemctl --user stop mic-clean.service && ok "وقفت خدمة الداشبورد مؤقتًا"; fi
 DPID="$(ss -ltnp 2>/dev/null | grep ':4747 ' | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"
 if [ -n "${DPID:-}" ]; then kill "$DPID" 2>/dev/null && ok "قفلت الداشبورد (pid $DPID)"; sleep 1; else ok "الداشبورد مش شغالة"; fi
 while read -r pid args; do
@@ -52,7 +52,7 @@ if [ -d "$HOME/.config/systemd/user" ]; then
   mkdir -p "$BK/systemd-user"
   for f in "$HOME"/.config/systemd/user/*.service; do
     [ -f "$f" ] || continue
-    [ "$(basename "$f")" = "mic-mohamed.service" ] && continue   # the dashboard itself — keep it
+    [ "$(basename "$f")" = "mic-clean.service" ] && continue   # the dashboard itself — keep it
     if grep -Eqi "$KEYS|pipewire +-c|pactl +load-module" "$f"; then
       u="$(basename "$f")"
       systemctl --user disable --now "$u" >/dev/null 2>&1
@@ -95,10 +95,13 @@ if ! pactl info >/dev/null 2>&1; then
   exit 1
 fi
 ok "$(pactl info | grep 'Server Name')"
-SRC="$(pactl list sources short | awk '{print $2}' | grep '^alsa_input' | grep -i usb | head -1)"
+# Keep the mic the system already has as default; only if that is gone or virtual, take the first real one.
+SRC="$(pactl get-default-source 2>/dev/null)"
+case "$SRC" in ''|*.monitor|mic_clean|mic_mohamed|*rnnoise*|*filter*|*echo*) SRC="";; esac
+[ -n "$SRC" ] && ! pactl list sources short | awk '{print $2}' | grep -qx "$SRC" && SRC=""
 [ -z "$SRC" ] && SRC="$(pactl list sources short | awk '{print $2}' | grep '^alsa_input' | head -1)"
 if [ -z "$SRC" ]; then
-  warn "مش لاقي أي مايك حقيقي! اتأكد إن مايك الـ USB متوصل، وشغّل: arecord -l"
+  warn "مش لاقي أي مايك حقيقي! اتأكد إن المايك متوصل، وشغّل: arecord -l"
   exit 1
 fi
 pactl set-default-source "$SRC"
@@ -134,10 +137,10 @@ else
   warn "مقدرتش أختبر (parecord أو python3 مش موجود). جرّب من الإعدادات → الصوت."
 fi
 
-if [ "$HAS_SVC" = 1 ]; then systemctl --user start mic-mohamed.service && ok "رجّعت خدمة الداشبورد تشتغل"; fi
+if [ "$HAS_SVC" = 1 ]; then systemctl --user start mic-clean.service && ok "رجّعت خدمة الداشبورد تشتغل"; fi
 
 say "خلصنا ✓"
 echo "   الباك أب في: $BK"
 echo "   لو كله تمام وعايز تمسحه:  rm -rf ~/audio-backup-*"
 echo "   دلوقتي شغّل الداشبورد:     node server.js   →  http://localhost:4747"
-echo "   ومن التاب بتاع المايك النضيف اختار مايك الـ USB ودوس «شغّل» → هيظهر مايك اسمه «Mic (Mohamed)»"
+echo "   افتح Mic Clean ودوس «▶ شغّل المايك النضيف» → هيظهر مايك اسمه «Mic Clean»"

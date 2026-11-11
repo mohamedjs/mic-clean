@@ -1,101 +1,121 @@
-# Mic (Mohamed)
+# Mic Clean
 
-داشبورد + تطبيق (PWA) للمايك بتشتغل على **لينكس** و**الماك (M1/M2/M3)** و**ويندوز**، ومع أي مايك (USB، XLR، لابتوب، بلوتوث): عزل ضوضاء RNNoise مزدوج، وEQ، وضاغط، وليميتر، وتسمع المايك وتشوفه live وانت بتظبط.
+**Any mic, studio clean.** Mic Clean cleans up your microphone and gives every other app a clean virtual mic called **Mic Clean**. It runs RNNoise twice, then a 10-band EQ, a compressor and a limiter. You can hear and see the result live while you tune it. It runs on Linux, macOS and Windows with any mic, needs no account and sends nothing to the cloud.
 
-مش محتاجة `npm install`، Node عادي (نسخة 18 أو أحدث).
+[Download](https://mohamedjs.github.io/mic-clean/) · [Releases](https://github.com/mohamedjs/mic-clean/releases) · [بالعربي ↓](#بالعربي)
 
-## التسطيب كتطبيق
+![Mic Clean](site/assets/app-home.png)
 
-| | لينكس | ماك | ويندوز |
+## Install
+
+| | Download | Then | Pick this mic in Zoom/OBS |
 |---|---|---|---|
-| التسطيب | `bash install-linux.sh` | `bash install-mac.sh` | `powershell -ExecutionPolicy Bypass -File install-windows.ps1` |
-| السيرفر | خدمة `systemd --user` (بتقوم مع الجهاز) | LaunchAgent (بيقوم مع الدخول) | اختصار في Startup (بيقوم مع الدخول) |
-| التنضيف بيحصل فين | PipeWire على مستوى النظام | جوه صفحة الداشبورد (RNNoise WASM) | جوه صفحة الداشبورد (RNNoise WASM) |
-| الكابل الوهمي | مش محتاج | BlackHole (مجاني) | [VB-CABLE](https://vb-audio.com/Cable/) (مجاني) |
-| المايك اللي تختاره في زوم/OBS | **Mic (Mohamed)** | **BlackHole 2ch** (أو Aggregate اسمه Mic (Mohamed)) | **CABLE Output (VB-Audio Virtual Cable)** |
-| لازم الأبلكيشن يفضل مفتوح؟ | لأ | أيوه (ممكن تصغّره) | أيوه (ممكن تصغّره) |
-| البراوزر | Chrome / Edge / Chromium | Chrome / Edge (Safari لأ) | Chrome / Edge |
-
-لينكس من غير PipeWire/pactl بيشتغل أوتوماتيك بنفس محرك البراوزر (أو بالعافية: `MIC_ENGINE=web node server.js`).
-
-## ويندوز: إزاي بيشتغل
-
-المايك الحقيقي ← الداشبورد (نفس سلسلة الماك) ← **CABLE Input** ← البرامج بتسجل من **CABLE Output**.
-- في تاب «مايك نضيف جديد»: الدخل = مايكك، الخرج = CABLE Input، وبعدين «▶ شغّل».
-- الجين والمايك الافتراضي بيتغيروا من Settings ← System ← Sound (أو `mmsys.cpl`).
-
-## مايكات مختلفة
-
-- أول مرة الداشبورد بتختار مايك USB أو كارت صوت (Yeti، Rode، Shure، Focusrite…) قبل مايك اللابتوب.
-- **قناة المايك**: لو كارت صوت بمدخلين والمايك على مدخل واحد، اختار «مدخل ١» أو «مدخل ٢» بدل ما الصوت يوطى للنص.
-- لو المايك اتفصل الداشبورد بتقولك، ولما ترجّعه بتشغّل لوحدها. ولو المايك المحفوظ مش موجود بتشتغل على الافتراضي.
-
-## صفحة التعريف (Landing page)
-
-موجودة في `site/` وبتتنشر على GitHub Pages أوتوماتيك من `.github/workflows/pages.yml` مع كل push على `main`.
-أول مرة بس: Settings ← Pages ← Source: **GitHub Actions**.
-
-بعد التسطيب الداشبورد بتفتح لوحدها. دوس **⬇ ثبّت كتطبيق** فوق، وهيبقى ليها أيقونة وشباك لوحدها زي أي أبلكيشن.
-
-من غير تسطيب (للتجربة): `node server.js` وافتح http://localhost:4747
-
-## الماك: إزاي بيشتغل
-
-المايك الحقيقي ← الداشبورد (قص الترددات الواطية ← RNNoise ١ ← RNNoise ٢ ← EQ ← ضاغط ← تعلية ← ليميتر) ← **BlackHole** ← زوم/OBS.
-- BlackHole درايفر مجاني بيعمل مايك وهمي. `install-mac.sh` بيسطّبه لوحده، وبعدها ممكن تحتاج Restart مرة واحدة.
-- في تاب «مايك نضيف جديد»: الدخل = مايك الـ USB، الخرج = BlackHole 2ch، وبعدين «▶ شغّل».
-- الجين على الماك بيتغير للمايك الافتراضي بس، وتغيير الافتراضي من الداشبورد محتاج `switchaudio-osx` (السكريبت بيسطّبه).
-
-## كل جزء بيعمل إيه
-
-| الجزء | بيعمل إيه |
-|---|---|
-| الصوت جاي منين؟ | بيرسم السلسلة: المايك الحقيقي ← الفلتر ← المصدر اللي البرامج بتسجل منه. ★ = الافتراضي. |
-| مصادر الصوت | كل مايك وفيه الجين والكتم ويتعمل افتراضي، وبيوريك مين بيسجل منه دلوقتي. |
-| التحكم في الفلتر الشغال | إعدادات Mic (clean) بتاعك (VAD Threshold / Grace …) بتتغير فورًا، بس مش بتتحفظ بعد الـ restart. |
-| اعمل مايك نضيف جديد | مايك وهمي فيه RNNoise ← قص الترددات الواطية ← EQ عشر درجات ← تعلية، أو WebRTC. |
-| المراقبة المباشرة | مقارنة A/B (زراير `A` و `B` و `Space`)، وتسمع نفسك (بالهيدفون)، وقراءات، وموجة، وترددات، وspectrogram، وتسجيل 10 ثواني. |
-| ملفات إعدادات الفلاتر | مكان ملف الـ config بتاع Mic (clean)، عشان تثبّت فيه القيم اللي عجبتك. |
-
-## تثبيت القيم بشكل دائم
-
-الإعدادات اللي بتغيرها في «التحكم في الفلتر الشغال» بتضيع لما PipeWire يعيد التشغيل. عشان تثبتها، افتح ملف الـ config اللي ظاهر في الداشبورد وعدّل الأرقام اللي جوه `control = { ... }`، وبعدين نفّذ:
+| **Ubuntu / Debian** | `Mic-Clean-<v>-linux-amd64.deb` | `sudo apt install ./Mic-Clean-<v>-linux-amd64.deb` | **Mic Clean** |
+| **Other Linux** | `Mic-Clean-<v>-linux-x86_64.AppImage` | `chmod +x` it and run it | **Mic Clean** |
+| **Mac (Apple Silicon or Intel)** | Homebrew, or the `.dmg` | see [Opening it on a Mac](#opening-it-on-a-mac) | **BlackHole 2ch** |
+| **Windows 10/11** | `Mic-Clean-Setup-<v>-windows-x64.exe` | SmartScreen: **More info → Run anyway** | **CABLE Output** |
 
 ```bash
-systemctl --user restart pipewire pipewire-pulse
+brew tap mohamedjs/mic-clean https://github.com/mohamedjs/mic-clean
+brew install --cask mic-clean
 ```
 
-## المتطلبات
+The app opens to **Home**. A **Is this computer ready?** card appears there when something is missing, with a button or a command to fix it.
+
+| OS | Needs | How you get it |
+|---|---|---|
+| Linux | PipeWire (or PulseAudio) and `pactl` | Already there on Ubuntu 22.04+, Fedora and most desktops. The `.deb` depends on them |
+| Linux | RNNoise | **Bundled** in the `.deb` and AppImage |
+| Linux | `swh-plugins`, for the compressor and limiter | The `.deb` recommends it. Otherwise use the button in the app, or `sudo apt install swh-plugins` (Fedora/openSUSE: `ladspa-swh-plugins`) |
+| macOS | [BlackHole 2ch](https://existential.audio/blackhole/), the virtual mic other apps record from | The Homebrew cask installs it. Otherwise `brew install --cask blackhole-2ch`, then restart once |
+| Windows | [VB-CABLE](https://vb-audio.com/Cable/), the virtual mic other apps record from | Download it, run `VBCABLE_Setup_x64.exe` as administrator, then restart |
+
+### Opening it on a Mac
+
+Mic Clean is not notarised by Apple yet, because that needs a paid developer ID. The first time you open a downloaded copy, macOS says **“Mic Clean” Not Opened**. Click **Done**, not *Move to Trash*, then do one of these:
+
+- **Homebrew** (easiest): the two commands above install the app and BlackHole and clear the warning.
+- **Downloaded `.dmg`**: drag Mic Clean into Applications and open it once. Then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**. Or run `xattr -dr com.apple.quarantine "/Applications/Mic Clean.app"`.
+- The first time, allow the **microphone**.
+
+On macOS and Windows the cleaning runs inside the app's window. Closing the window keeps it running in the tray or menu bar. To stop it, quit from the tray.
+
+## How it works
+
+```
+Linux:          your mic ─► PipeWire filter-chain: high-pass ─► RNNoise ─► RNNoise ─► EQ ─► compressor ─► gain ─► limiter ─► "Mic Clean"
+macOS/Windows:  your mic ─► app window (Web Audio + RNNoise WASM, same chain) ─► BlackHole / CABLE Input ─► apps record BlackHole / CABLE Output
+```
+
+- **Input:** the **system's default mic**, the one picked in your OS sound settings. You can pick another mic in the app. On Linux, while Mic Clean runs it becomes the default input so apps use it. When it stops, the default goes back to your real mic.
+- **Presets:** 🎙 Podcast (the default), 🎓 Lecture recording, 💼 Meetings, 🎮 Stream, 🚧 Very noisy room, 🌿 Natural. Every preset ends in a limiter at −2 dBFS.
+- **Tabs:** Home (ready check, start, presets, signal path) · Tune (every stage) · Listen and compare (A/B, meters, spectrogram, 10 s recording, gain calibration) · Mics · Advanced (old filters, engine log, configs, raw output).
+- **Different mics:** works with USB mics, audio interfaces, laptop mics and Bluetooth. For a two-input interface with the mic on one input, pick input 1 or input 2 so the level is not halved. If the saved mic is gone, it uses the default mic. If a mic is unplugged, it restarts by itself when the mic comes back.
+
+## Code layout
+
+A modular monolith with no runtime dependencies: Node.js 18+ and the browser, nothing else.
+
+```
+electron/main.js          desktop app: window, tray, start at login, mic permission, cleanup on quit
+server.js                 run without the app: node server.js → http://localhost:4747
+src/
+  server.js               picks the routes for this OS and starts the HTTP server
+  core/                   config (name, paths, OS/mode), exec (commands), http (routes + static files), fsutil
+  shared/presets.js       the presets, shared by the server and the window (one source of truth)
+  modules/
+    settings/             load/save/reset; defaults = the Podcast preset
+    linux/                pactl parsing, default mic, chain config, engine, plugins, graph, legacy filters, routes
+    mac/                  Core Audio devices, input volume, BlackHole
+    windows/              audio devices through PowerShell, VB-CABLE
+    deps/                 GET /api/deps: what this computer is missing and how to fix it
+    migrate/              switches off the old "Mic (Mohamed)" autostart (the app used to be called Mic (Mohamed))
+public/                   the window: index.html (markup), css/, js/ (dashboard, scenes, calibrate, setup, engine-web), js/audio/ (RNNoise worklet + WASM)
+packaging/                icons, licences, Linux RNNoise fetch, macOS ad hoc signing
+Casks/mic-clean.rb        Homebrew cask
+scripts/                  run from source without the app: install-linux.sh, install-mac.sh, install-windows.ps1, reset-audio.sh
+site/                     landing page (Arabic and English), deployed to GitHub Pages
+video/                    the explainer video and how it was made
+test/                     npm test: chain config, presets, pactl parsing and routes against golden files
+```
+
+## Develop
 
 ```bash
-sudo apt install pulseaudio-utils pipewire-bin
+npm install          # Electron and electron-builder (dev only)
+npm test             # checks, no sound server needed
+npm run app          # the desktop app
+npm start            # server only → http://localhost:4747
+npm run dist:linux   # → dist/*.deb, dist/*.AppImage   (dist:mac / dist:win build on those OSes)
 ```
 
-الإعدادات بتتحفظ في `~/.config/mic-clean-dashboard/`، والسيرفر بيسمع على 127.0.0.1 بس.
+`MIC_PLATFORM=darwin|win32` shows another OS's window on Linux, and `MIC_ENGINE=web` forces the in-window engine.
 
-## عزل مزدوج + ضاغط + أوضاع جاهزة
+## Releasing
 
-- **عزل مزدوج (Double RNNoise):** الصوت بيعدي على RNNoise مرتين. الأولى بتشيل أغلب الضوضاء وبتكتم السكوت، والتانية بتشيل البواقي. خلي بوابة التانية خفيفة (15–30%) عشان الصوت ميبقاش روبوتي.
-- **الضاغط (Compressor):** بيخلي علو صوتك ثابت زي البودكاستات. محتاج: `sudo apt install swh-plugins` (Fedora: `ladspa-swh-plugins`، وعلى الماك وويندوز مدمج في البراوزر)، ومن غيره كل حاجة تانية شغالة عادي.
-- **أوضاع جاهزة:** 🎙 بودكاست (الافتراضي)، 💼 اجتماعات، 🎮 ستريم، 🚧 مكان دوشة، 🌿 طبيعي.
-- ترتيب المراحل: المايك ← قص الترددات الواطية ← RNNoise ١ ← RNNoise ٢ ← EQ ← ضاغط ← Mic (Mohamed).
-- أول ما النسخة دي تشتغل، الإعدادات القديمة بتتحوّل لإعدادات البودكاست، والمايك اللي كنت مختاره بيفضل زي ما هو.
+1. Bump `version` in `package.json`, then run `npm test`.
+2. `git tag v1.2.3 && git push origin v1.2.3`.
 
-## معايرة الجين (لو المايك واطي)
+`.github/workflows/release.yml` builds Linux on ubuntu-22.04, macOS arm64 + x64 on macos-15 and Windows on windows-latest. It starts each build and takes a screenshot, then publishes the release with `SHA256SUMS.txt` and fixed-name copies (`Mic-Clean-macos-arm64.zip` …) for the cask and the landing page. Pushing a `feat/**` branch builds the same files as run artifacts without publishing anything.
 
-من تاب «اسمع وقارن» دوس **🎚 ابدأ المعايرة** واتكلم 8 ثواني. الداشبورد بتقيس صوتك وبتعلّي بالترتيب ده عشان النقاء يفضل زي ما هو:
-1. جين المايك نفسه لحد 100% (أنضف تعلية).
-2. لو لسه ناقص، تعلية **بعد** RNNoise (لحد +12 dB)، فالضوضاء اللي اتشالت مش بتعلى.
-3. 🛡 ليميتر عند -2 dB بيمنع التكسير (محتاج `swh-plugins`).
+Code signing has not been set up yet. The macOS builds are signed ad hoc, so users see **Open Anyway**. The Windows installer shows SmartScreen until it is signed with an OV/EV certificate.
 
-فيه كمان وضع جاهز جديد: **🎓 تسجيل شرح**. بيسيب سكتات التفكير من غير ما يقطعها، والضغط فيه أقوى شوية عشان الصوت يبقى واضح وثابت.
+## Coming from Mic (Mohamed)
 
-## لو الصوت باظ: رجّعه زي ما كان
+The app used to be called Mic (Mohamed), and its virtual mic is now called **Mic Clean**, so pick it again in Zoom/OBS. On first start the desktop app switches off the old background service (`mic-mohamed.service`, `com.mohamed.mic`, or the Startup shortcut). Your settings stay where they were (`~/.config/mic-clean-dashboard/`). If the audio gets into a bad state on Linux, `bash scripts/reset-audio.sh` puts it back. It keeps your default mic and moves custom audio configs to `~/audio-backup-<date>`.
 
-```bash
-bash reset-audio.sh
-```
-بيقفل أي فلتر، ويشيل إعدادات الصوت الخاصة (`~/.config/pipewire` و `wireplumber` و `pulse`) والخدمات أو البرامج اللي بتعمل فلاتر، ويمسح ذاكرة WirePlumber. بعدها بيعيد تشغيل الصوت، ويخلي مايك الـ USB هو الافتراضي على 100%، ويختبره.
-مفيش حاجة بتتمسح نهائي، كله بيتنقل لـ `~/audio-backup-<التاريخ>`. لو كله تمام امسحه بـ `rm -rf ~/audio-backup-*`.
+---
 
-بعد كده الداشبورد هي بس اللي بتعمل المايك الوهمي **Mic (Mohamed)**، ولما تقفلها بيتشال.
+## بالعربي
+
+**Mic Clean** أبلكيشن بينضّف المايك بتاعك ويعمل مايك وهمي اسمه **Mic Clean** تختاره في زوم وميت وOBS وديسكورد. الصوت بيعدي على RNNoise مرتين، وبعدين EQ وضاغط وليميتر، وانت بتسمع وبتشوف النتيجة live وانت بتظبط. شغال على لينكس والماك وويندوز ومع أي مايك.
+
+- **التسطيب:** نزّل الملف المناسب لجهازك من [صفحة الأبلكيشن](https://mohamedjs.github.io/mic-clean/). على الماك الأسهل `brew install --cask mic-clean`. ولو الماك قالك «Not Opened» افتح **System Settings ← Privacy & Security ← Open Anyway**.
+- **المايك:** الأبلكيشن بياخد **المايك الافتراضي بتاع الجهاز**، اللي انت مختاره في إعدادات الصوت، وتقدر تغيّره من جوه الأبلكيشن.
+- **اللي محتاجه:** على لينكس RNNoise جاي جوه الأبلكيشن، والضاغط محتاج `swh-plugins` (فيه زرار يسطّبه). الماك محتاج BlackHole، وويندوز محتاج VB-CABLE. تاب «الرئيسية» بيقولك لو حاجة ناقصة وإزاي تجيبها.
+- **في زوم/OBS اختار:** **Mic Clean** على لينكس، و**BlackHole 2ch** على الماك، و**CABLE Output** على ويندوز.
+- **التابات:** الرئيسية (جاهز؟ + شغّل + الأوضاع الجاهزة) · الضبط · اسمع وقارن · المايكات · متقدم.
+
+## License
+
+MIT. Bundled: [rnnoise-wasm](public/js/audio/vendor/LICENSE) (Apache-2.0). The Linux packages also bundle the RNNoise LADSPA plugin from [werman/noise-suppression-for-voice](https://github.com/werman/noise-suppression-for-voice) (GPL-3.0). It ships as a separate program, and its licence is in `resources/licenses`.

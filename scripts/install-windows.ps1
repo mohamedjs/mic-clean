@@ -1,14 +1,14 @@
-# Mic (Mohamed) — Windows installer
-# Run:  powershell -ExecutionPolicy Bypass -File install-windows.ps1
+# Mic Clean from source on Windows (easier: Mic-Clean-Setup-<version>-windows-x64.exe from the releases)
+# Run:  powershell -ExecutionPolicy Bypass -File scripts\install-windows.ps1
 # - checks Node.js (offers winget install)
 # - checks VB-CABLE (the free virtual mic other apps record from) and opens its download page if missing
 # - starts the dashboard server at login (hidden) and opens it now
 $ErrorActionPreference = 'Stop'
-$Here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Here = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)  # the repository
 $Port = if ($env:PORT) { $env:PORT } else { 4747 }
 $Url = "http://localhost:$Port"
 
-Write-Host "`n  Mic (Mohamed) - Windows setup`n" -ForegroundColor Cyan
+Write-Host "`n  Mic Clean - Windows setup (from source)`n" -ForegroundColor Cyan
 
 # 1) Node.js 18+
 $node = Get-Command node -ErrorAction SilentlyContinue
@@ -46,7 +46,9 @@ sh.CurrentDirectory = "$Here"
 sh.Run """$nodePath"" ""$Here\server.js""", 0, False
 "@ | Set-Content -Encoding ASCII $vbs
 $startup = [Environment]::GetFolderPath('Startup')
-$lnk = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $startup 'Mic (Mohamed).lnk'))
+# the app used to be called Mic (Mohamed): remove its old startup shortcut
+$old = Join-Path $startup 'Mic (Mohamed).lnk'; if (Test-Path $old) { Remove-Item $old -Force }
+$lnk = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $startup 'Mic Clean.lnk'))
 $lnk.TargetPath = 'wscript.exe'; $lnk.Arguments = "`"$vbs`""; $lnk.WorkingDirectory = $Here; $lnk.Save()
 Write-Host "  [ok] Starts automatically at login"
 
@@ -60,4 +62,4 @@ if ($browser) { Start-Process $browser -ArgumentList "--app=$Url" } else { Start
 Write-Host "`n  Done. Dashboard: $Url"
 Write-Host "  In the dashboard: input = your mic, output = CABLE Input, then press Start."
 Write-Host "  In Zoom/Teams/Discord/OBS pick the microphone: CABLE Output (VB-Audio Virtual Cable)`n"
-Write-Host "  Uninstall: delete '$startup\Mic (Mohamed).lnk' and '$dataDir'."
+Write-Host "  Uninstall: delete '$startup\Mic Clean.lnk' and '$dataDir'."

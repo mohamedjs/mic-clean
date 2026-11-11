@@ -1,0 +1,178 @@
+# Builds the Mic Clean desktop app for Linux (.deb, AppImage), macOS (.dmg, .zip;
+# Apple Silicon and Intel) and Windows (Setup .exe), starts each build on its
+# runner and takes a screenshot.
+#   - push to a feat/** branch or run by hand: the builds are artifacts of the run only
+#   - push a tag like v1.0.0: also publishes a GitHub Release
+# Every release also carries the files under fixed names (Mic-Clean-macos-arm64.zip …)
+# so the landing page and Casks/mic-clean.rb can link .../releases/latest/download/<name>.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+    branches: ["feat/**"]
+    paths-ignore: ["site/**", "video/**", "**.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          CODE=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "${GITHUB_REF_NAME#v}" != "$CODE" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $CODE in package.json"; exit 1
+          fi
+          echo "version=$CODE" >> "$GITHUB_OUTPUT"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - run: node --test test/run.js
+
+  build:
+    needs: [version, test]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, target: linux }
+          - { os: macos-15, target: macos }
+          - { os: windows-latest, target: windows }
+    runs-on: ${{ matrix.os }}
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"   # no signing certificate yet (see README)
+      MIC_CLEAN_TEST: "1"                     # smoke runs must not add login items
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: npm }
+      - run: npm ci
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: npm run dist:linux
+      - name: Build (macOS, arm64 + x64)
+        if: runner.os == 'macOS'
+        run: npm run dist:mac
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: npm run dist:win
+
+      - name: Collect, with fixed-name copies
+        shell: bash
+        run: |
+          mkdir -p out
+          cp dist/*.deb dist/*.AppImage dist/*.dmg dist/*.zip dist/*.exe out/ 2>/dev/null || true
+          cd out
+          for f in Mic-Clean-*; do
+            fixed=$(echo "$f" | sed -E "s/-$VERSION//")   # Mic-Clean-1.0.0-macos-arm64.zip → Mic-Clean-macos-arm64.zip
+            [ "$fixed" != "$f" ] && cp "$f" "$fixed"
+          done
+          ls -la
+
+      - name: Smoke test, start the app and screenshot (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb imagemagick x11-utils
+          sudo apt-get install -y -qq ./out/Mic-Clean-$VERSION-linux-amd64.deb
+          dpkg -L mic-clean | grep -q resources/ladspa/librnnoise_ladspa.so
+          xvfb-run -a -s "-screen 0 1280x900x24" bash -c '
+            PORT=4790 "/opt/Mic Clean/mic-clean" --no-sandbox & sleep 1
+            for i in $(seq 1 60); do curl -fs localhost:4790/api/app && break; sleep 1; done
+            curl -fs localhost:4790/api/app | grep -q "\"desktop\":true"
+            sleep 4; mkdir -p screenshots; import -window root screenshots/linux.png'
+      - name: Smoke test, start the app and screenshot (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          APP="$(ls -d dist/mac-arm64/*.app | head -1)"
+          codesign --verify --deep --strict "$APP"
+          PORT=4790 "$APP/Contents/MacOS/Mic Clean" & sleep 1
+          for i in $(seq 1 60); do curl -fs localhost:4790/api/app && break; sleep 1; done
+          curl -fs localhost:4790/api/app | grep -q '"desktop":true'
+          sleep 4; mkdir -p screenshots; screencapture -x screenshots/macos.png || true
+      - name: Smoke test, start the app and screenshot (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:PORT = '4790'
+          $p = Start-Process -PassThru -FilePath "dist\win-unpacked\Mic Clean.exe"
+          $ok = $false
+          for ($i = 0; $i -lt 60 -and -not $ok; $i++) { try { $r = Invoke-RestMethod http://localhost:4790/api/app; $ok = $r.desktop } catch { Start-Sleep 1 } }
+          if (-not $ok) { throw 'the app did not start its server' }
+          Start-Sleep 4
+          New-Item -ItemType Directory -Force screenshots | Out-Null
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("screenshots\windows.png")
+          Stop-Process -Id $p.Id -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: out/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-${{ matrix.target }}
+          path: screenshots/*
+          if-no-files-found: ignore
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts, merge-multiple: true, pattern: "[!s]*" }
+      - run: cd artifacts && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Mic Clean ${{ env.VERSION }}
+          generate_release_notes: true
+          files: artifacts/*
+          body: |
+            **Any mic, studio clean.** Double RNNoise, EQ, compressor and limiter as a virtual mic called **Mic Clean**.
+            المايك بتاعك نضيف: عزل ضوضاء مزدوج وEQ وضاغط وليميتر، في مايك وهمي اسمه **Mic Clean**.
+
+            ## Download
+            | | File | Then |
+            |---|---|---|
+            | **Ubuntu / Debian** | `Mic-Clean-${{ env.VERSION }}-linux-amd64.deb` | `sudo apt install ./Mic-Clean-${{ env.VERSION }}-linux-amd64.deb` |
+            | **Other Linux** | `Mic-Clean-${{ env.VERSION }}-linux-x86_64.AppImage` | `chmod +x` it and run. Needs PipeWire or PulseAudio |
+            | **Mac (M1/M2/M3/M4)** | `Mic-Clean-${{ env.VERSION }}-macos-arm64.dmg` | Not notarised yet: first open needs **System Settings → Privacy & Security → Open Anyway**. Needs [BlackHole 2ch](https://existential.audio/blackhole/) |
+            | **Mac (Intel)** | `Mic-Clean-${{ env.VERSION }}-macos-x64.dmg` | Same as above |
+            | **Windows 10/11** | `Mic-Clean-Setup-${{ env.VERSION }}-windows-x64.exe` | SmartScreen: **More info → Run anyway**. Needs [VB-CABLE](https://vb-audio.com/Cable/) |
+
+            Homebrew (installs BlackHole too and skips the Gatekeeper warning):
+            ```
+            brew tap mohamedjs/mic-clean https://github.com/mohamedjs/mic-clean
+            brew install --cask mic-clean
+            ```
+
+            In Zoom / Meet / OBS / Discord pick **Mic Clean** (Linux), **BlackHole 2ch** (Mac) or **CABLE Output** (Windows).
+            The app checks what your computer is missing on its home tab.
+
+            **Coming from Mic (Mohamed)?** The virtual mic is now called **Mic Clean**: pick it again in your apps. The old background service is switched off on first start.
+
+            Checksums: `SHA256SUMS.txt`.

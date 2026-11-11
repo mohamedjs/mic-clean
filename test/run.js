@@ -74,6 +74,7 @@ test('every OS mode serves every old route plus the new ones', () => {
 test('no file still says Mic (Mohamed) where people see it', () => {
   const files = spawnSync('git', ['ls-files', '-co', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n')
     .filter((f) => f && /\.(js|html|json|webmanifest|sh|ps1|md|yml|rb)$/.test(f) && !f.startsWith('test/') && !f.includes('node_modules') && f !== 'src/modules/migrate/index.js' && fs.existsSync(path.join(ROOT, f)));
-  const bad = files.filter((f) => /Mic \(Mohamed\)/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')));
+  // lines that talk about the old name on purpose (migration) are fine
+  const bad = files.filter((f) => fs.readFileSync(path.join(ROOT, f), 'utf8').split('\n').some((l) => /Mic \(Mohamed\)/.test(l) && !/used to be called|Coming from|كان اسمه|\.lnk/.test(l)));
   assert.deepStrictEqual(bad, []);
 });

@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  install-linux.sh — يخلي Mic (Mohamed) شغال على أوبونتو كأبلكيشن
+#  scripts/install-linux.sh — يشغّل Mic Clean من الكود (من غير الأبلكيشن الجاهز)
+#   الأسهل: نزّل الـ .deb أو الـ AppImage من mohamedjs.github.io/mic-clean
 #   • السيرفر بيشتغل في الخلفية كخدمة (systemd --user) ويقوم لوحده مع الجهاز
 #   • بتفتح الداشبورد في Chrome وتدوس «⬇ ثبّت كتطبيق» → أيقونة في القائمة
 #
-#  التشغيل:           bash install-linux.sh
-#  الإلغاء:           bash install-linux.sh --uninstall
+#  التشغيل:           bash scripts/install-linux.sh
+#  الإلغاء:           bash scripts/install-linux.sh --uninstall
 # =====================================================================
 set -euo pipefail
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UNIT="mic-mohamed.service"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # the repository
+UNIT="mic-clean.service"
 UNIT_FILE="$HOME/.config/systemd/user/$UNIT"
 PORT="${PORT:-4747}"
 say() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
@@ -36,10 +37,15 @@ command -v pw-cli >/dev/null && ok "PipeWire tools موجودة" || echo "   ⚠
 ls /usr/lib/ladspa/sc4m_1916.so >/dev/null 2>&1 && ok "الضاغط والليميتر (swh-plugins) موجودين" || echo "   ⚠ الضاغط مش متسطب:  sudo apt install swh-plugins"
 
 say "2) بعمل خدمة تشغّل السيرفر في الخلفية"
+# the app used to be called Mic (Mohamed): switch its old service off
+if [ -f "$HOME/.config/systemd/user/mic-mohamed.service" ]; then
+  systemctl --user disable --now mic-mohamed.service 2>/dev/null || true
+  rm -f "$HOME/.config/systemd/user/mic-mohamed.service"; ok "شلت الخدمة القديمة mic-mohamed"
+fi
 mkdir -p "$(dirname "$UNIT_FILE")"
 cat > "$UNIT_FILE" <<EOF
 [Unit]
-Description=Mic (Mohamed) — mic dashboard & noise cancellation
+Description=Mic Clean — mic noise cancellation (from source)
 After=pipewire.service pipewire-pulse.service wireplumber.service
 Wants=pipewire-pulse.service
 
@@ -67,6 +73,6 @@ done
 echo "   دوس زرار «⬇ ثبّت كتطبيق» فوق في الداشبورد، أو من Chrome: ⋮ ← Cast, save and share ← Install page as app"
 echo
 echo "   أوامر مفيدة:"
-echo "     systemctl --user restart mic-mohamed    # بعد أي تحديث للكود"
-echo "     journalctl --user -u mic-mohamed -f     # السجل"
-echo "     bash install-linux.sh --uninstall       # إلغاء"
+echo "     systemctl --user restart mic-clean    # بعد أي تحديث للكود"
+echo "     journalctl --user -u mic-clean -f     # السجل"
+echo "     bash scripts/install-linux.sh --uninstall       # إلغاء"

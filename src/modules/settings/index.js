@@ -30,7 +30,7 @@ function load() {
     const v = saved.settingsVersion || 1;
     // v1 → podcast defaults (keep the picked mic); v2 → follow the system default mic
     if (v < 2) return { ...structuredClone(DEFAULT_SETTINGS), master: '', autoStart: !!saved.autoStart };
-    if (v < 3) return { ...structuredClone(DEFAULT_SETTINGS), ...saved, settingsVersion: SETTINGS_VERSION, master: '', webInput: undefined };
+    if (v < 3) return { ...structuredClone(DEFAULT_SETTINGS), ...saved, settingsVersion: SETTINGS_VERSION, master: '', webInputId: 'default' };
     return { ...structuredClone(DEFAULT_SETTINGS), ...saved };
   } catch { return structuredClone(DEFAULT_SETTINGS); }
 }

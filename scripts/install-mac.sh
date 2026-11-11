@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
 # =====================================================================
-#  install-mac.sh — Mic (Mohamed) على الماك (Apple Silicon M1/M2/M3 أو Intel)
+#  scripts/install-mac.sh — Mic Clean من الكود على الماك (الأسهل: brew install --cask mic-clean)
+#   (Apple Silicon M1/M2/M3 أو Intel)
 #   • بيسطّب Node و BlackHole (مايك وهمي) و SwitchAudioSource بـ Homebrew
 #   • بيشغّل السيرفر في الخلفية (LaunchAgent) ويقوم لوحده مع الدخول
 #   • بيفتح الداشبورد في Chrome → دوس «⬇ ثبّت كتطبيق»
 #
-#  التشغيل:     bash install-mac.sh
-#  الإلغاء:     bash install-mac.sh --uninstall
+#  التشغيل:     bash scripts/install-mac.sh
+#  الإلغاء:     bash scripts/install-mac.sh --uninstall
 # =====================================================================
 set -euo pipefail
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LABEL="com.mohamed.mic"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # the repository
+LABEL="io.github.mohamedjs.micclean.server"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
-LOG="$HOME/Library/Logs/mic-mohamed.log"
+LOG="$HOME/Library/Logs/mic-clean.log"
 PORT="${PORT:-4747}"
 say() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
 ok()  { printf '   \033[32m✓\033[0m %s\n' "$*"; }
 die() { printf '   \033[31m✗ %s\033[0m\n' "$*"; exit 1; }
 
-[ "$(uname)" = "Darwin" ] || die "السكريبت ده للماك بس. على أوبونتو استخدم install-linux.sh"
+[ "$(uname)" = "Darwin" ] || die "السكريبت ده للماك بس. على أوبونتو استخدم scripts/install-linux.sh"
 
 if [ "${1:-}" = "--uninstall" ]; then
   say "بشيل الخدمة"
@@ -86,11 +87,11 @@ cat <<'TXT'
    ١. دوس «⬇ ثبّت كتطبيق» فوق → هيبقى ليه أيقونة في Launchpad والـ Dock.
    ٢. أول مرة: اسمح لـ Chrome يستخدم المايك (System Settings ← Privacy & Security ← Microphone).
    ٣. تاب «مايك نضيف جديد» ← المايك الحقيقي = مايك الـ USB، يطلع على = BlackHole 2ch ← «▶ شغّل».
-   ٤. في زوم/OBS/ميت اختار «BlackHole 2ch» كمايك (أو اعمل Aggregate اسمه «Mic (Mohamed)» — الشرح جوه الداشبورد).
+   ٤. في زوم/OBS/ميت اختار «BlackHole 2ch» كمايك (أو اعمل Aggregate اسمه «Mic Clean» — الشرح جوه الداشبورد).
    ⚠ الأبلكيشن لازم يفضل مفتوح (ممكن تصغّره) عشان التنضيف يشتغل.
 
    أوامر مفيدة:
-     launchctl kickstart -k gui/$(id -u)/com.mohamed.mic   # إعادة تشغيل السيرفر بعد تحديث
-     tail -f ~/Library/Logs/mic-mohamed.log                # السجل
-     bash install-mac.sh --uninstall                       # إلغاء
+     launchctl kickstart -k gui/$(id -u)/io.github.mohamedjs.micclean.server   # إعادة تشغيل السيرفر بعد تحديث
+     tail -f ~/Library/Logs/mic-clean.log                # السجل
+     bash scripts/install-mac.sh --uninstall                       # إلغاء
 TXT
