@@ -7,7 +7,7 @@ from tts import key
 
 lines = {l['id']: l['text'] for l in json.loads(Path(sys.argv[1]).read_text())}
 vo = Path(sys.argv[2]); ids = sys.argv[3:] or list(lines)
-k = key('gemini'); MODEL = __import__('os').environ.get('STT_MODEL', 'gemini-3.8-flash')
+k = key('gemini') or sys.exit('No gemini key: set GEMINI_API_KEY or add "gemini" to ~/.config/lura/keys.json'); MODEL = __import__('os').environ.get('STT_MODEL', 'gemini-3.8-flash')
 for i in ids:
     f = vo / f'{i}.wav'
     if not f.exists(): continue

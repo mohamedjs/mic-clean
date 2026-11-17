@@ -1,0 +1,522 @@
+{
+ "brand": {
+  "logo": "img/logo.png"
+ },
+ "scenes": [
+  {
+   "id": "title",
+   "type": "title",
+   "vo": "n1",
+   "title": "Mic Clean",
+   "sub": "Any mic, studio-clean sound",
+   "tiles": [
+    {
+     "icon": "ubuntu",
+     "text": "Linux"
+    },
+    {
+     "icon": "apple",
+     "text": "macOS"
+    },
+    {
+     "icon": "windows",
+     "text": "Windows"
+    },
+    {
+     "icon": "mic",
+     "text": "Any mic"
+    }
+   ]
+  },
+  {
+   "id": "problem",
+   "type": "bullets",
+   "vo": [
+    "n2",
+    "n3"
+   ],
+   "title": "The problem",
+   "icon": "volume-vibrate",
+   "items": [
+    {
+     "icon": "windy",
+     "text": "Fan and AC",
+     "sub": "A steady hum under your voice"
+    },
+    {
+     "icon": "keyboard-box",
+     "text": "Keyboard and mouse",
+     "sub": "Clicks that cut into your words"
+    },
+    {
+     "icon": "road-map",
+     "text": "Street noise",
+     "sub": "Cars and people talking"
+    },
+    {
+     "icon": "equalizer-2",
+     "text": "Uneven level",
+     "sub": "Louder, quieter, sometimes clipping"
+    }
+   ]
+  },
+  {
+   "id": "demo",
+   "type": "shot",
+   "vo": [
+    "n4",
+    "demo_raw",
+    "n5",
+    "demo_clean"
+   ],
+   "clip": "ab",
+   "fps": 15,
+   "frame": "screen",
+   "title": "Hear the difference",
+   "icon": "headphone",
+   "post": 0.4,
+   "points": [
+    {
+     "icon": "mic",
+     "text": "The same recording, twice"
+    },
+    {
+     "icon": "magic",
+     "text": "Mic Clean on the Podcast preset"
+    }
+   ],
+   "marks": [
+    {
+     "vo": "demo_raw",
+     "text": "Before: the raw mic",
+     "icon": "ri-mic-off-line",
+     "color": "#D2452F"
+    },
+    {
+     "vo": "demo_clean",
+     "text": "After: Mic Clean",
+     "icon": "ri-sparkling-2-line",
+     "color": "#2F8F5B"
+    }
+   ],
+   "cue": {
+    "demo_raw": 5.898,
+    "n5": 14.548,
+    "demo_clean": 19.256
+   }
+  },
+  {
+   "id": "install",
+   "type": "bullets",
+   "vo": [
+    "n6",
+    "n7"
+   ],
+   "title": "Install",
+   "icon": "download-2",
+   "items": [
+    {
+     "icon": "ubuntu",
+     "text": "Linux",
+     "sub": "A deb or an AppImage, RNNoise inside"
+    },
+    {
+     "icon": "apple",
+     "text": "macOS",
+     "sub": "From Homebrew, with BlackHole"
+    },
+    {
+     "icon": "windows",
+     "text": "Windows",
+     "sub": "A normal Setup file, with VB-CABLE"
+    },
+    {
+     "icon": "github",
+     "text": "GitHub Releases",
+     "sub": "Every version is built and tested automatically"
+    }
+   ]
+  },
+  {
+   "id": "check",
+   "type": "shot",
+   "vo": "n8",
+   "clip": "check",
+   "fps": 15,
+   "frame": "screen",
+   "title": "Ready to go?",
+   "icon": "checkbox-multiple",
+   "points": [
+    {
+     "icon": "search-eye",
+     "text": "Checks everything the app needs"
+    },
+    {
+     "icon": "terminal-box",
+     "text": "A button or a command for anything missing"
+    }
+   ]
+  },
+  {
+   "id": "home",
+   "type": "shot",
+   "vo": "n9",
+   "clip": "home",
+   "fps": 15,
+   "frame": "screen",
+   "title": "Start the clean mic",
+   "icon": "play-circle",
+   "points": [
+    {
+     "icon": "mic",
+     "text": "Your computer's default mic"
+    },
+    {
+     "icon": "cursor",
+     "text": "One click on Start"
+    }
+   ]
+  },
+  {
+   "id": "scenes",
+   "type": "shot",
+   "vo": "n10",
+   "clip": "scenes",
+   "fps": 15,
+   "frame": "screen",
+   "title": "Ready-made modes",
+   "icon": "magic",
+   "points": [
+    {
+     "icon": "mic-2",
+     "text": "Podcast is the default"
+    },
+    {
+     "icon": "team",
+     "text": "Meetings, stream, noisy room"
+    }
+   ]
+  },
+  {
+   "id": "tune",
+   "type": "shot",
+   "vo": "n11",
+   "clip": "tune",
+   "fps": 15,
+   "frame": "screen",
+   "title": "Tune",
+   "icon": "equalizer-3",
+   "points": [
+    {
+     "icon": "sound-module",
+     "text": "Every stage is explained"
+    },
+    {
+     "icon": "flashlight",
+     "text": "Changes apply right away"
+    }
+   ]
+  },
+  {
+   "id": "monitor",
+   "type": "shot",
+   "vo": "n12",
+   "clip": "monitor",
+   "fps": 15,
+   "frame": "screen",
+   "title": "Listen and compare",
+   "icon": "line-chart",
+   "points": [
+    {
+     "icon": "swap-box",
+     "text": "Raw on A, clean on B"
+    },
+    {
+     "icon": "bar-chart-2",
+     "text": "Meters, waveform and spectrogram"
+    }
+   ]
+  },
+  {
+   "id": "linux",
+   "type": "diagram",
+   "vo": "g_linux",
+   "title": "On Linux",
+   "icon": "ubuntu",
+   "sub": "inside PipeWire",
+   "nodes": [
+    {
+     "id": "mic",
+     "label": "The mic",
+     "icon": "mic",
+     "tech": "system default",
+     "x": 270,
+     "y": 420
+    },
+    {
+     "id": "rn",
+     "label": "Noise removal",
+     "icon": "magic",
+     "tech": "RNNoise ×2",
+     "x": 680,
+     "y": 420
+    },
+    {
+     "id": "eq",
+     "label": "The sound",
+     "icon": "equalizer-2",
+     "tech": "EQ + compressor",
+     "x": 1090,
+     "y": 420
+    },
+    {
+     "id": "lim",
+     "label": "Protection",
+     "icon": "shield-check",
+     "tech": "limiter −2 dB",
+     "x": 1500,
+     "y": 420
+    },
+    {
+     "id": "out",
+     "label": "Virtual mic",
+     "icon": "mic-2",
+     "tech": "Mic Clean",
+     "x": 1500,
+     "y": 760
+    },
+    {
+     "id": "apps",
+     "label": "Your apps",
+     "icon": "vidicon",
+     "tech": "Zoom · OBS · Meet",
+     "x": 1090,
+     "y": 760
+    }
+   ],
+   "edges": [
+    {
+     "from": "mic",
+     "to": "rn"
+    },
+    {
+     "from": "rn",
+     "to": "eq"
+    },
+    {
+     "from": "eq",
+     "to": "lim"
+    },
+    {
+     "from": "lim",
+     "to": "out"
+    },
+    {
+     "from": "out",
+     "to": "apps"
+    }
+   ],
+   "flow": [
+    {
+     "from": "mic",
+     "to": "rn",
+     "text": "Sound comes in from the default mic",
+     "vo": "g_linux"
+    },
+    {
+     "from": "rn",
+     "to": "eq",
+     "text": "RNNoise, twice, removes the noise"
+    },
+    {
+     "from": "eq",
+     "to": "lim",
+     "text": "EQ and compressor, then a limiter"
+    },
+    {
+     "from": "lim",
+     "to": "out",
+     "text": "Out comes a virtual mic called Mic Clean"
+    },
+    {
+     "from": "out",
+     "to": "apps",
+     "text": "Pick it in Zoom or OBS"
+    }
+   ]
+  },
+  {
+   "id": "macwin",
+   "type": "diagram",
+   "vo": "g_macwin",
+   "title": "On macOS and Windows",
+   "icon": "computer",
+   "sub": "inside the app window",
+   "nodes": [
+    {
+     "id": "mic",
+     "label": "The mic",
+     "icon": "mic",
+     "tech": "system default",
+     "x": 220,
+     "y": 480
+    },
+    {
+     "id": "win",
+     "label": "App window",
+     "icon": "window-2",
+     "tech": "Web Audio + RNNoise WASM",
+     "x": 720,
+     "y": 480
+    },
+    {
+     "id": "cable",
+     "label": "Virtual cable",
+     "icon": "plug",
+     "tech": "BlackHole · VB-CABLE",
+     "x": 1220,
+     "y": 480
+    },
+    {
+     "id": "apps",
+     "label": "Your apps",
+     "icon": "vidicon",
+     "tech": "Zoom · OBS · Meet",
+     "x": 1690,
+     "y": 480
+    },
+    {
+     "id": "srv",
+     "label": "Local server",
+     "icon": "server",
+     "tech": "Node.js · 127.0.0.1",
+     "x": 720,
+     "y": 800
+    }
+   ],
+   "edges": [
+    {
+     "from": "mic",
+     "to": "win"
+    },
+    {
+     "from": "win",
+     "to": "cable"
+    },
+    {
+     "from": "cable",
+     "to": "apps"
+    },
+    {
+     "from": "win",
+     "to": "srv",
+     "label": "Settings and devices",
+     "lx": -150
+    }
+   ],
+   "flow": [
+    {
+     "from": "mic",
+     "to": "win",
+     "text": "The window takes the mic's sound",
+     "vo": "g_macwin"
+    },
+    {
+     "from": "win",
+     "to": "srv",
+     "text": "The server finds devices and saves settings"
+    },
+    {
+     "from": "win",
+     "to": "cable",
+     "text": "Clean sound goes out to the virtual cable"
+    },
+    {
+     "from": "cable",
+     "to": "apps",
+     "text": "Your apps record from it"
+    }
+   ]
+  },
+  {
+   "id": "layers",
+   "type": "bullets",
+   "vo": "n18",
+   "title": "Inside the code",
+   "icon": "stack",
+   "sub": "modular monolith",
+   "items": [
+    {
+     "icon": "settings-4",
+     "text": "core",
+     "sub": "config · exec · http"
+    },
+    {
+     "icon": "apps-2",
+     "text": "modules",
+     "sub": "linux · mac · windows · deps · settings"
+    },
+    {
+     "icon": "share-circle",
+     "text": "shared/presets.js",
+     "sub": "The server and the UI read the same modes"
+    },
+    {
+     "icon": "computer",
+     "text": "electron + public",
+     "sub": "The window, the tray and the UI"
+    }
+   ]
+  },
+  {
+   "id": "code",
+   "type": "code",
+   "vo": "g_code",
+   "title": "The default mic",
+   "icon": "code-s-slash",
+   "sub": "src/modules/linux/default-mic.js",
+   "code": "async function resolveInput() {\n  if (settings.master && !isOurs(settings.master)) return settings.master;\n  const def = await systemDefault();\n  if (!isOurs(def)) return def;          // the mic the system already uses\n  return settings.previousDefault || firstHardwareMic();\n}\n\nasync function restore() {               // when Mic Clean stops\n  if (!isOurs(await systemDefault())) return;\n  await run('pactl', ['set-default-source', previousDefault]);\n}",
+   "highlight": [
+    {
+     "lines": [
+      3,
+      4
+     ],
+     "vo": "g_code"
+    },
+    {
+     "lines": [
+      8,
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "id": "outro",
+   "type": "outro",
+   "vo": "n21",
+   "title": "Mic Clean",
+   "sub": "Clean sound, from any mic",
+   "tiles": [
+    {
+     "icon": "ubuntu",
+     "text": "Linux"
+    },
+    {
+     "icon": "apple",
+     "text": "macOS"
+    },
+    {
+     "icon": "windows",
+     "text": "Windows"
+    },
+    {
+     "icon": "github",
+     "text": "Open source"
+    }
+   ],
+   "url": "mohamedjs.github.io/mic-clean"
+  }
+ ]
+}

@@ -16,3 +16,7 @@ vo_gemini_takes/
 vo_el/
 *.skill
 render.log
+vo_en/
+hf/
+hf_en/
+timing.en.json

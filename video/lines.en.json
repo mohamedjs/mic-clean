@@ -1,0 +1,87 @@
+[
+ {
+  "id": "n1",
+  "text": "This is Mic Clean. Any microphone, studio-clean sound, on Linux, macOS and Windows.",
+  "style": "warm, confident intro, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n2",
+  "text": "You know the problem: the fan, the AC, the keyboard, the street noise. It all goes into your mic.",
+  "style": "relatable, a little playful, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n3",
+  "text": "And your voice gets louder and quieter, and sometimes it clips when you lean into the mic.",
+  "style": "relatable, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n4",
+  "text": "Listen to this recording from a noisy room, without Mic Clean.",
+  "style": "inviting, short, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n5",
+  "text": "And now the same recording, after Mic Clean.",
+  "style": "inviting, short, a bit proud, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n6",
+  "text": "Installing is easy. On Linux there's a deb and an AppImage, and RNNoise comes inside the app.",
+  "style": "clear, explaining, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n7",
+  "text": "On macOS it's Homebrew, with BlackHole. On Windows, a normal setup file, with VB-CABLE.",
+  "style": "clear, explaining, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n8",
+  "text": "When you open it, the Home tab checks your computer, and tells you if anything is missing and how to get it.",
+  "style": "clear, helpful, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n9",
+  "text": "It takes your computer's default mic right away, nothing to pick. One click on Start, and you're done.",
+  "style": "clear, reassuring, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n10",
+  "text": "Pick a ready-made mode for where you are: podcast, meetings, streaming, or a very noisy room.",
+  "style": "friendly, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n11",
+  "text": "In the Tune tab, you control every stage, and changes apply while you talk.",
+  "style": "clear, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n12",
+  "text": "In Listen and compare, you flip between the raw mic and the clean one, and see the difference.",
+  "style": "clear, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "g_linux",
+  "text": "On Linux, the sound runs through a filter-chain inside PipeWire. RNNoise twice, then an EQ and a compressor, and finally a limiter so your voice never clips. The result is a virtual mic called Mic Clean, which you pick in Zoom or OBS.",
+  "style": "clear, technical, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "g_macwin",
+  "text": "On macOS and Windows, the cleaning happens inside the app window itself, with Web Audio and RNNoise WASM. The clean sound goes out to BlackHole or VB-CABLE, and your apps record from there.",
+  "style": "clear, technical, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n18",
+  "text": "The code is a simple modular monolith: a core, one module per system, and a single presets file shared by the server and the UI.",
+  "style": "clear, technical, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "g_code",
+  "text": "For example, this is the part that picks the mic. If you haven't chosen one, it takes the system default. And when Mic Clean stops, it puts your default mic back the way it was.",
+  "style": "clear, technical, natural brisk conversational pace, no long pauses"
+ },
+ {
+  "id": "n21",
+  "text": "Download it from the Mic Clean page on GitHub, and hear the difference for yourself.",
+  "style": "warm, inviting close, natural brisk conversational pace, no long pauses"
+ }
+]

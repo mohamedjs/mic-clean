@@ -69,9 +69,10 @@
     <h2 data-i18n="video.t"></h2>
     <p class="sub" data-i18n="video.sub"></p>
     <div class="clay videobox">
-      <video controls preload="metadata" playsinline poster="assets/video-poster.png">
-        <source src="assets/mic-clean-explainer.mp4" type="video/mp4">
-      </video>
+      <!-- site.js picks the file for the page language: Arabic narration or English narration -->
+      <video controls preload="metadata" playsinline
+        data-src-ar="assets/mic-clean-explainer.mp4" data-poster-ar="assets/video-poster.png"
+        data-src-en="assets/mic-clean-en.mp4" data-poster-en="assets/video-poster-en.png"></video>
     </div>
   </section>
 

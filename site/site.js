@@ -114,6 +114,7 @@ function apply() {
   document.getElementById('heroDlText').textContent = t('hero.dl', { os: t('os.' + OS) });
   document.getElementById('ver').textContent = version ? t('hero.ver', { v: version }) : '';
   document.title = lang === 'ar' ? 'Mic Clean · صوتك نضيف زي البودكاست' : 'Mic Clean · Any mic, studio clean';
+  if (typeof video === 'function') video();
 }
 
 function links() {
@@ -143,8 +144,14 @@ document.addEventListener('click', async (e) => {
 
 links();
 apply();
-// no video yet (or it failed to load): hide that section instead of an empty player
-{ const v = document.querySelector('#video video'); const hide = () => { document.getElementById('video').hidden = true; };
-  v.addEventListener('error', hide, true); v.querySelector('source').addEventListener('error', hide);
-  fetch(v.querySelector('source').src, { method: 'HEAD' }).then((r) => { if (!r.ok) hide(); }).catch(hide); }
+// the explainer in the page language (Arabic or English narration); if that file is missing or fails
+// to load, hide the section instead of an empty player (shown again when the language changes)
+function video() {
+  const v = document.querySelector('#video video'), box = document.getElementById('video');
+  const k = lang === 'ar' ? 'Ar' : 'En', src = v.dataset['src' + k];
+  if (v.getAttribute('src') === src) return;
+  box.hidden = false; v.pause(); v.poster = v.dataset['poster' + k]; v.src = src; v.load();
+  fetch(src, { method: 'HEAD' }).then((r) => { if (!r.ok && v.getAttribute('src') === src) box.hidden = true; }).catch(() => {});
+}
+document.querySelector('#video video').addEventListener('error', (e) => { if (e.target.getAttribute('src')) document.getElementById('video').hidden = true; });
 fetch(`https://api.github.com/repos/${REPO}/releases/latest`).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j?.tag_name) { version = j.tag_name.replace(/^v/, ''); apply(); } }).catch(() => {});
