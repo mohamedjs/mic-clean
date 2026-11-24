@@ -1,7 +1,7 @@
 {
   "name": "mic-clean",
   "productName": "Mic Clean",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Any mic, studio clean: double RNNoise, EQ, compressor and limiter as a virtual mic, on Linux, macOS and Windows.",
   "homepage": "https://mohamedjs.github.io/mic-clean/",
   "repository": {

@@ -36,6 +36,13 @@ test('chain config is unchanged for every preset (apart from the new name)', () 
   assert.strictEqual(stamp(buildChainConf(D, null)), want('noRn'));
 });
 
+test('limiter still loads its plugin when the compressor is off', () => {
+  const D = settings.DEFAULT_SETTINGS;
+  const conf = buildChainConf({ ...structuredClone(D), comp: false, limiter: true }, '/x.so');
+  assert.match(conf, /name = limiter plugin = "[^"]*sc4m_1916\.so"/);
+  assert.doesNotMatch(conf, /plugin = null|plugin = "null"/);
+});
+
 test('presets match the dashboard scenes captured before the move', () => {
   const gold = JSON.parse(fs.readFileSync(G('scenes.json'), 'utf8'));
   assert.deepStrictEqual(JSON.parse(JSON.stringify(P.SCENES)), gold);

@@ -2,6 +2,7 @@
 // Runs the clean mic on Linux: a `pipewire -c` child with the filter-chain
 // (RNNoise ×2, EQ, compressor, limiter), or PulseAudio's WebRTC echo-cancel.
 const fs = require('fs');
+const path = require('path');
 const { spawn } = require('child_process');
 const { APP, PATHS } = require('../../core/config');
 const { run, has } = require('../../core/exec');
@@ -15,6 +16,62 @@ let chainProc = null;      // pipewire -c child
 let chainLog = [];
 let echoModuleIndex = null; // module-echo-cancel we loaded
 let lastError = '';
+// The session caps real-time threads at 200 ms of CPU (RLIMIT_RTTIME, soft = hard),
+// and the kernel SIGKILLs the chain when it goes over. After such a kill we restart
+// without real-time priority, which that limit does not apply to.
+let noRt = false;
+let crashes = [];
+let lastConsumers = [];
+let watchTimer = null; // who was recording the clean mic at the last check (for a crash restart)          // times of unexpected exits, for the restart limit
+
+// A log that survives chain restarts and app restarts: <stateDir>/engine.log.
+const LOG_FILE = path.join(PATHS.stateDir, 'engine.log');
+function logEvent(msg) {
+  const line = `${new Date().toISOString()} ${msg}`;
+  chainLog.push(line); chainLog = chainLog.slice(-200);
+  try {
+    fs.mkdirSync(PATHS.stateDir, { recursive: true });
+    try { if (fs.statSync(LOG_FILE).size > 1024 * 1024) fs.renameSync(LOG_FILE, LOG_FILE + '.1'); } catch {}
+    fs.appendFileSync(LOG_FILE, line + '\n');
+  } catch {}
+}
+
+// Apps recording the clean mic right now (not our own filter's capture stream).
+async function sourceIndex(name) {
+  const r = await run('pactl', ['list', 'sources', 'short']);
+  const row = r.out.split('\n').map((l) => l.split('\t')).find((c) => c[1] === name);
+  return row ? Number(row[0]) : null;
+}
+async function consumersOf(name) {
+  const idx = await sourceIndex(name);
+  if (idx === null) return [];
+  const outs = parsePactlList((await run('pactl', ['list', 'source-outputs'])).out, 'Source Output');
+  return outs.filter((o) => Number(o.Source) === idx && o.props['node.name'] !== APP.capture)
+    .map((o) => ({ client: o.Client, media: o.props['media.name'] || '', app: o.props['application.name'] || o.props['node.name'] || '?' }));
+}
+// When the clean mic is rebuilt, PipeWire moves its recorders to another mic (usually
+// the raw one) and they stay there. Put them back on the new clean mic.
+async function reattach(consumers) {
+  if (!consumers.length) return;
+  const end = Date.now() + 2500;
+  let pending = consumers.slice();
+  while (pending.length && Date.now() < end) {
+    const idx = await sourceIndex(APP.node);
+    const outs = parsePactlList((await run('pactl', ['list', 'source-outputs'])).out, 'Source Output');
+    const left = [];
+    for (const c of pending) {
+      const o = outs.find((x) => x.Client === c.client && (x.props['media.name'] || '') === c.media);
+      if (!o) { left.push(c); continue; }           // not re-created yet
+      if (Number(o.Source) === idx) continue;        // already back
+      const r = await run('pactl', ['move-source-output', String(o.index), APP.node]);
+      logEvent(`reattach ${c.app} (${c.media || '-'}) → ${APP.node}: ${r.ok ? 'ok' : r.err.trim()}`);
+      if (!r.ok && !/invalid argument/i.test(r.err)) left.push(c); // "Invalid argument": the app pinned its stream (e.g. a level meter); leave it
+    }
+    pending = left;
+    if (pending.length) await new Promise((r) => setTimeout(r, 250));
+  }
+  if (pending.length) logEvent(`could not reattach: ${pending.map((c) => c.app).join(', ')}`);
+}
 
 async function cleanStatus(isPipeWire) {
   const rnnoisePath = findRnnoise();
@@ -59,32 +116,53 @@ async function waitForSource(name, ms = 4000) {
   return false;
 }
 
-async function startPipewireChain() {
+async function startPipewireChain(reason = 'start', keep = null) {
   const rnnoisePath = findRnnoise();
+  // Remember who records the clean mic, so a restart doesn't leave them on the raw mic.
+  const consumers = keep || (chainProc ? await consumersOf(APP.node) : []);
   fs.mkdirSync(PATHS.stateDir, { recursive: true });
   // Pin the input to the system's default mic (or the picked one), never to the clean mic itself.
   const input = await defaults.resolveInput();
-  fs.writeFileSync(PATHS.chainConf, buildChainConf({ ...settings, master: input }, rnnoisePath));
+  fs.writeFileSync(PATHS.chainConf, buildChainConf({ ...settings, master: input, noRt }, rnnoisePath));
   await stopChain();
-  chainLog = [];
+  logEvent(`chain ${reason}${noRt ? ' (no real-time)' : ''}: input=${input || '(default)'} recorders=${consumers.map((c) => c.app).join(', ') || 'none'}`);
   const proc = spawn('pipewire', ['-c', PATHS.chainConf], { stdio: ['ignore', 'pipe', 'pipe'] });
   chainProc = proc;
-  const onData = (d) => { chainLog.push(...String(d).split('\n').filter(Boolean)); chainLog = chainLog.slice(-200); };
+  const onData = (d) => String(d).split('\n').filter(Boolean).forEach((l) => logEvent(`pipewire: ${l}`));
   proc.stdout.on('data', onData); proc.stderr.on('data', onData);
-  proc.on('exit', (code) => { if (chainProc === proc) { chainProc = null; lastError = `الفلتر وقف فجأة (كود ${code}) — بص على السجل تحت.`; } });
+  proc.on('exit', (code, sig) => {
+    const unexpected = chainProc === proc;
+    logEvent(`chain exited code=${code} signal=${sig || '-'}${unexpected ? ' (unexpected)' : ''}`);
+    if (!unexpected) return;
+    chainProc = null;
+    if (sig === 'SIGKILL' && !noRt) { noRt = true; logEvent('killed by the real-time CPU limit; restarting without real-time priority'); }
+    const now = Date.now();
+    crashes = crashes.filter((t) => now - t < 60000).concat(now);
+    if (crashes.length > 5) { lastError = `الفلتر وقف فجأة أكتر من 5 مرات في دقيقة (كود ${code ?? sig}) — بص على السجل تحت.`; logEvent('too many crashes in a minute; not restarting'); restoreDefault(); return; }
+    lastError = '';
+    // Bring the clean mic straight back and move apps that were recording it back onto it.
+    setTimeout(() => { if (!chainProc) startPipewireChain('auto-restart after crash', lastConsumers).catch((e) => logEvent(`auto-restart failed: ${e.message}`)); }, 300);
+  });
   const ok = await waitForSource(APP.node);
   if (!ok) {
     if (settings.comp && findComp() && !comp.broken) { // retry once without the compressor
       comp.broken = true;
-      const r2 = await startPipewireChain();
+      logEvent('virtual mic did not appear; retrying without the compressor');
+      const r2 = await startPipewireChain('retry-no-comp', consumers);
       if (r2) lastError = 'الضاغط (Compressor) مشتغلش مع نسخة الـ PipeWire دي — اشتغل من غيره.';
       return r2;
     }
-    lastError = `المايك الوهمي ${APP.desc} مظهرش — بص على السجل تحت.`; return false;
+    lastError = `المايك الوهمي ${APP.desc} مظهرش — بص على السجل تحت.`; logEvent('virtual mic did not appear'); return false;
+  }
+  if (settings.makeDefault) await run('pactl', ['set-default-source', APP.node]);
+  await reattach(consumers);
+  lastConsumers = await consumersOf(APP.node).catch(() => consumers);
+  if (!watchTimer) {
+    watchTimer = setInterval(async () => { if (chainProc) lastConsumers = await consumersOf(APP.node).catch(() => lastConsumers); }, 3000);
+    watchTimer.unref?.();
   }
   if (comp.broken) return true;
   lastError = settings.rnnoise && !rnnoisePath ? 'ملف RNNoise مش موجود — شغال EQ بس من غير عزل ضوضاء. نزّل noise-suppression-for-voice (شوف README).' : '';
-  if (settings.makeDefault) await run('pactl', ['set-default-source', APP.node]);
   return true;
 }
 
@@ -137,6 +215,7 @@ async function stopWebrtc() {
 const restoreDefault = () => defaults.restore();
 
 async function stopAll() {
+  if (chainProc || echoModuleIndex !== null) logEvent('stop');
   await restoreDefault();
   await stopChain();
   await stopWebrtc();
@@ -150,4 +229,4 @@ const state = {
   set lastError(v) { lastError = v; },
 };
 
-module.exports = { cleanStatus, startPipewireChain, livePipewireUpdate, startWebrtc, stopWebrtc, stopChain, stopAll, restoreDefault, state, forgetWebrtc: () => { echoModuleIndex = null; } };
+module.exports = { logEvent, cleanStatus, startPipewireChain, livePipewireUpdate, startWebrtc, stopWebrtc, stopChain, stopAll, restoreDefault, state, forgetWebrtc: () => { echoModuleIndex = null; } };

@@ -87,7 +87,7 @@ const mods = [
   ["mac", "mac/\nCore Audio devices\ninput volume\nBlackHole"],
   ["windows", "windows/\nPowerShell devices\nVB-CABLE\n(+ Linux w/o pactl)"],
   ["deps", "deps/\nGET /api/deps\nwhat's missing +\nthe fix for each"],
-  ["migrate", "migrate/\nswitches off the old\nMic (Mohamed)\nautostart"],
+  ["migrate", "migrate/\nswitches off the\nold app's\nautostart"],
 ];
 const mw = 170, mg = 14;
 mods.forEach(([id, t], i) => box(id, 336 + i * (mw + mg), 555, mw, 150, t, "core", { fs: 15 }));

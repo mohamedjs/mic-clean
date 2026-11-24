@@ -63,8 +63,12 @@ const routes = {
     if (settings.master === APP.node) settings.master = '';
     settings.save();
     const st = await getStatus();
-    await engine.stopAll();
-    const ok = settings.engine === 'pipewire' ? await engine.startPipewireChain() : await engine.startWebrtc(st.server.isPipeWire);
+    // Restart in place: don't hand the default back to the raw mic in between,
+    // or apps that follow the default would switch to it.
+    let ok;
+    if (settings.engine === 'pipewire') { await engine.stopWebrtc(); ok = await engine.startPipewireChain(engine.state.chainPid ? 'restart (start pressed)' : 'start'); }
+    else { await engine.stopChain(); ok = await engine.startWebrtc(st.server.isPipeWire); }
+    if (!ok) await engine.restoreDefault();
     return { ok, error: engine.state.lastError };
   },
   'POST /api/clean/update': async (body) => {
@@ -78,7 +82,7 @@ const routes = {
     clearTimeout(restartTimer);
     restartTimer = setTimeout(async () => {
       const st = await getStatus();
-      if (settings.engine === 'pipewire') { await engine.stopWebrtc(); await engine.startPipewireChain(); }
+      if (settings.engine === 'pipewire') { await engine.stopWebrtc(); await engine.startPipewireChain('restart (stage toggled)'); }
       else { await engine.stopChain(); await engine.startWebrtc(st.server.isPipeWire); }
     }, 350);
     return { ok: true, applied: 'restart' };
