@@ -106,6 +106,19 @@ function stopChain() {
   });
 }
 
+// A chain left running by an earlier copy of the app (killed by an upgrade or a crash)
+// keeps its own "Mic Clean" source, so starting ours next to it gives two. Stop it first.
+async function stopStrayChains() {
+  const pattern = `pipewire -c ${PATHS.chainConf}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pids = async () => (await run('pgrep', ['-f', pattern])).out.split('\n').map(Number).filter((p) => p && p !== process.pid);
+  const stray = await pids();
+  if (!stray.length) return;
+  logEvent(`stopping ${stray.length} chain(s) left by an earlier run: ${stray.join(', ')}`);
+  for (const p of stray) { try { process.kill(p, 'SIGTERM'); } catch {} }
+  for (let i = 0; i < 10 && (await pids()).length; i++) await new Promise((r) => setTimeout(r, 150));
+  for (const p of await pids()) { try { process.kill(p, 'SIGKILL'); } catch {} }
+}
+
 async function waitForSource(name, ms = 4000) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
@@ -125,6 +138,7 @@ async function startPipewireChain(reason = 'start', keep = null) {
   const input = await defaults.resolveInput();
   fs.writeFileSync(PATHS.chainConf, buildChainConf({ ...settings, master: input, noRt }, rnnoisePath));
   await stopChain();
+  await stopStrayChains();
   logEvent(`chain ${reason}${noRt ? ' (no real-time)' : ''}: input=${input || '(default)'} recorders=${consumers.map((c) => c.app).join(', ') || 'none'}`);
   const proc = spawn('pipewire', ['-c', PATHS.chainConf], { stdio: ['ignore', 'pipe', 'pipe'] });
   chainProc = proc;
