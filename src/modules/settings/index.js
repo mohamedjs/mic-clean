@@ -5,7 +5,12 @@ const fs = require('fs');
 const { PATHS } = require('../../core/config');
 const { EQ_FREQS, SCENES, DEFAULT_SCENE } = require('../../shared/presets');
 
-const SETTINGS_VERSION = 3; // 3: input follows the system default mic (no USB preference)
+const SETTINGS_VERSION = 4; // 3: input follows the system default mic (no USB preference); 4: warmer podcast scene
+
+// The podcast scene before 1.0.3. Settings still on exactly these values move to the new one.
+const OLD_PODCAST = { highpass: 90, eq: [-6, -3, 1.5, -2, -1.5, 0, 1.5, 2.5, -1, 0], compThreshold: -20, compRatio: 3, compAttack: 10, compRelease: 150, compMakeup: 4, outputGainDb: 0 };
+const isOldPodcast = (s) => Array.isArray(s.eq) && s.eq.length === 10 && s.eq.every((b, i) => Number(b.gain) === OLD_PODCAST.eq[i])
+  && Object.entries(OLD_PODCAST).every(([k, v]) => k === 'eq' || Number(s[k]) === v);
 
 function sceneSettings(name) {
   const s = structuredClone(SCENES[name].s);
@@ -31,6 +36,8 @@ function load() {
     // v1 → podcast defaults (keep the picked mic); v2 → follow the system default mic
     if (v < 2) return { ...structuredClone(DEFAULT_SETTINGS), master: '', autoStart: !!saved.autoStart };
     if (v < 3) return { ...structuredClone(DEFAULT_SETTINGS), ...saved, settingsVersion: SETTINGS_VERSION, master: '', webInputId: 'default' };
+    // v3 → the warmer podcast scene, only if the stages were never changed from the old one
+    if (v < 4) return { ...structuredClone(DEFAULT_SETTINGS), ...saved, ...(isOldPodcast(saved) ? sceneSettings(DEFAULT_SCENE) : {}), settingsVersion: SETTINGS_VERSION };
     return { ...structuredClone(DEFAULT_SETTINGS), ...saved };
   } catch { return structuredClone(DEFAULT_SETTINGS); }
 }

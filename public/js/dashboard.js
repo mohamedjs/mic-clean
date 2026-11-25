@@ -23,7 +23,7 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
   });
 });
 
-let STATUS = null, SETTINGS = null, EQF = [], interacting = false;
+let STATUS = null, SETTINGS = null, EQF = [], interacting = false, serverSettingsJson = '';
 const STATE_AR = { RUNNING: 'شغال دلوقتي', IDLE: 'جاهز', SUSPENDED: 'نايم (محدش بيسجل منه)' };
 
 // ------------------------------------------------------------ live value descriptions (engine)
@@ -93,7 +93,11 @@ async function refresh() {
   STATUS = st;
   if (!st.ok) { $('srv').textContent = 'مفيش sound server'; $('sources').innerHTML = `<div class="status err">${esc(st.error)}</div>`; return; }
   $('srv').innerHTML = `${esc(st.server.name)} · المدخل الافتراضي: <span class="mono">${esc(st.server.defaultSource)}</span>`;
-  if (!SETTINGS) { SETTINGS = st.settings; EQF = st.eqFreqs; renderEngine(); }
+  // Pick up settings changed elsewhere (the API, another window): only when the server's copy
+  // changed since the last poll and differs from ours, so an edit still on its way isn't undone.
+  const sj = JSON.stringify(st.settings);
+  if (!SETTINGS || (sj !== serverSettingsJson && sj !== JSON.stringify(SETTINGS))) { SETTINGS = st.settings; EQF = st.eqFreqs; renderEngine(); }
+  serverSettingsJson = sj;
   renderSources(st);
   renderChains(gr, st);
   renderFilters(gr);

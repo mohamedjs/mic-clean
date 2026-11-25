@@ -59,6 +59,36 @@ test('default settings are the podcast scene and follow the system default mic',
   assert.strictEqual(D.profile, 'podcast');
 });
 
+test('v3 settings on the old podcast scene move to the new one; tuned ones are kept', () => {
+  const OLD = [-6, -3, 1.5, -2, -1.5, 0, 1.5, 2.5, -1, 0];
+  const v3 = (gains, extra = {}) => ({ settingsVersion: 3, profile: 'podcast', master: 'alsa_input.mine', autoStart: true, highpass: 90,
+    eq: P.EQ_FREQS.map((freq, i) => ({ freq, gain: gains[i], q: 1 })), compThreshold: -20, compRatio: 3, compAttack: 10, compRelease: 150, compMakeup: 4, outputGainDb: 0, ...extra });
+  const loadWith = (saved) => {
+    const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mic-clean-mig-'));
+    fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify(saved));
+    const r = spawnSync(process.execPath, ['-e', 'process.stdout.write(JSON.stringify(require("./src/modules/settings")))'], { cwd: ROOT, env: { ...process.env, MIC_STATE_DIR: dir }, encoding: 'utf8' });
+    return JSON.parse(r.stdout);
+  };
+  const moved = loadWith(v3(OLD));
+  assert.deepStrictEqual(moved.eq.map((b) => b.gain), P.SCENES.podcast.s.eq);
+  assert.strictEqual(moved.compMakeup, P.SCENES.podcast.s.compMakeup);
+  assert.strictEqual(moved.master, 'alsa_input.mine');
+  assert.strictEqual(moved.autoStart, true);
+  assert.strictEqual(moved.settingsVersion, settings.SETTINGS_VERSION);
+  const tuned = loadWith(v3(OLD.map((g, i) => (i === 7 ? 0 : g)), { compMakeup: 6 }));
+  assert.strictEqual(tuned.eq[7].gain, 0);
+  assert.strictEqual(tuned.compMakeup, 6);
+  assert.strictEqual(tuned.highpass, 90);
+});
+
+test('live updates go to pw-cli in batches small enough for its 1 KB pod buffer', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'src/modules/linux/engine.js'), 'utf8');
+  const n = Number(src.match(/const LIVE_BATCH = (\d+)/)[1]);
+  // longest param: "rnnoise2:Retroactive VAD Grace (ms)" ≈ 56 bytes as a pod; 25+ params overflow
+  assert.ok(n > 0 && n <= 16, `LIVE_BATCH = ${n}`);
+  assert.match(src, /Object: size 8,/);
+});
+
 test('pactl parsing and source classification are unchanged', () => {
   const gold = JSON.parse(fs.readFileSync(G('parsed.json'), 'utf8'));
   const mods = parsePactlList(fs.readFileSync(G('pactl-modules.txt'), 'utf8'), 'Module');

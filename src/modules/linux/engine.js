@@ -183,10 +183,18 @@ async function livePipewireUpdate() {
   s.eq.forEach((b, i) => params.push(`"eq${i}:Freq" ${Number(b.freq)}`, `"eq${i}:Q" ${Number(b.q) || 1}`, `"eq${i}:Gain" ${Number(b.gain)}`));
   params.push(`"gain:Gain 1" ${Math.pow(10, Number(s.outputGainDb) / 20).toFixed(4)}`);
   if (s.limiter && !comp.broken && findComp()) params.push(`"limiter:Threshold level (dB)" ${Number(s.limiterCeiling)}`);
-  const r = await run('pw-cli', ['set-param', String(id), 'Props', `{ params = [ ${params.join(' ')} ] }`]);
-  if (process.env.MIC_DEBUG) console.log('[live]', id, params.join(' '), '→', r.code, r.err.trim());
-  return r.ok && !/error/i.test(r.out + r.err);
+  // pw-cli builds the Props pod in a ~1 KB buffer: past ~25 params it silently sends an
+  // empty object ("Object: size 8") and nothing changes. Send small batches and treat an
+  // empty object as a failure, so the caller falls back to restarting the chain.
+  for (let i = 0; i < params.length; i += LIVE_BATCH) {
+    const batch = params.slice(i, i + LIVE_BATCH).join(' ');
+    const r = await run('pw-cli', ['set-param', String(id), 'Props', `{ params = [ ${batch} ] }`]);
+    if (process.env.MIC_DEBUG) console.log('[live]', id, batch, '→', r.code, r.err.trim());
+    if (!r.ok || /error/i.test(r.out + r.err) || /Object: size 8,/.test(r.out)) return false;
+  }
+  return true;
 }
+const LIVE_BATCH = 12;
 
 async function startWebrtc(isPipeWire) {
   await stopWebrtc();
