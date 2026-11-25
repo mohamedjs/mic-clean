@@ -13,7 +13,7 @@
       // Warm radio voice: body at 100–150 Hz, less box at 500, 2–16 kHz pulled down (no de-esser in the chain).
       // Tuned by ear on a cheap USB mic that RNNoise leaves 4–5 dB brighter in 2.5–10 kHz.
       s: { rnnoise: true, vadThreshold: 55, vadGrace: 300, retroGrace: 50, rnnoise2: true, vad2Threshold: 20, vad2Grace: 400, retro2Grace: 0, highpass: 70,
-        eq: [-6, -1, 4, 0.5, -2, 0, -0.5, -2.5, -4.5, -4], comp: true, compThreshold: -24, compRatio: 3, compAttack: 15, compRelease: 200, compMakeup: 7, outputGainDb: 3, limiter: true, limiterCeiling: -2 } },
+        eq: [-6, -1.5, 3, -2.5, -2.5, 0, 0.5, -2, -4.5, -4], comp: true, compThreshold: -24, compRatio: 3, compAttack: 15, compRelease: 200, compMakeup: 7, outputGainDb: 3, limiter: true, limiterCeiling: -2 } },
     lecture: { e: '🎓', t: 'تسجيل شرح', d: 'سكتات التفكير متتقطعش، وصوت واضح وعالي كفاية، ومن غير تكسير.',
       s: { rnnoise: true, vadThreshold: 45, vadGrace: 450, retroGrace: 50, rnnoise2: true, vad2Threshold: 15, vad2Grace: 500, retro2Grace: 0, highpass: 80,
         eq: [-6, -3, 1, -2, -1, 0.5, 2, 2.5, -1, 0], comp: true, compThreshold: -24, compRatio: 3, compAttack: 12, compRelease: 200, compMakeup: 6, outputGainDb: 0, limiter: true, limiterCeiling: -2 } },
@@ -35,7 +35,7 @@
   const EQ_PRESETS = {
     flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     voice: [-6, -3, -1, 0, -1, 0, 2, 3, 2, 0],
-    podcast: [-6, -1, 4, 0.5, -2, 0, -0.5, -2.5, -4.5, -4],
+    podcast: [-6, -1.5, 3, -2.5, -2.5, 0, 0.5, -2, -4.5, -4],
     warm: [0, 2, 3, 1, 0, -1, 0, 1, 0, -2],
     deess: [0, 0, 0, 0, 0, 0, -1, -3, -4, -3],
     laptop: [-8, -5, -2, -1, -2, 0, 3, 4, 2, -2],
