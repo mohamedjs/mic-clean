@@ -89,6 +89,40 @@ test('live updates go to pw-cli in batches small enough for its 1 KB pod buffer'
   assert.match(src, /Object: size 8,/);
 });
 
+test('following the default mic never takes a Bluetooth headset mic while a wired one exists', async () => {
+  const exec = require('../src/core/exec');
+  const realRun = exec.run;
+  let def = '', sources = [];
+  exec.run = async (cmd, args) => {
+    if (cmd === 'pactl' && args[0] === 'get-default-source') return { ok: true, out: def + '\n', err: '', code: 0 };
+    if (cmd === 'pactl' && args[0] === 'list') return { ok: true, out: sources.map((n, i) => `${i}\t${n}\tPipeWire\ts16le 1ch 48000Hz\tSUSPENDED`).join('\n'), err: '', code: 0 };
+    return realRun(cmd, args);
+  };
+  try {
+    delete require.cache[require.resolve('../src/modules/linux/default-mic')];
+    const dm = require('../src/modules/linux/default-mic');
+    const keep = { master: settings.master, previousDefault: settings.previousDefault };
+    const USB = 'alsa_input.usb-Mic-00.mono-fallback', BT = 'bluez_input.18_9C_2C_21_76_3E.0';
+    settings.master = ''; settings.previousDefault = undefined;
+    // headset connected and made the default: keep cleaning the USB mic
+    def = BT; sources = [USB, BT, 'mic_clean', 'alsa_output.x.monitor'];
+    assert.strictEqual(await dm.resolveInput(), USB);
+    // clean mic is the default; the remembered default is the headset: still the USB mic
+    def = 'mic_clean'; settings.previousDefault = BT;
+    assert.strictEqual(await dm.resolveInput(), USB);
+    // the headset is the only mic: use it
+    def = BT; sources = [BT, 'mic_clean']; settings.previousDefault = undefined;
+    assert.strictEqual(await dm.resolveInput(), BT);
+    // picked on purpose: respected
+    settings.master = BT; sources = [USB, BT];
+    assert.strictEqual(await dm.resolveInput(), BT);
+    // a wired default is followed as before
+    settings.master = ''; def = USB;
+    assert.strictEqual(await dm.resolveInput(), USB);
+    Object.assign(settings, keep);
+  } finally { exec.run = realRun; }
+});
+
 test('pactl parsing and source classification are unchanged', () => {
   const gold = JSON.parse(fs.readFileSync(G('parsed.json'), 'utf8'));
   const mods = parsePactlList(fs.readFileSync(G('pactl-modules.txt'), 'utf8'), 'Module');

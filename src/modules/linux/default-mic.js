@@ -20,15 +20,22 @@ async function hardwareSources() {
   return list.out.split('\n').map((l) => l.split('\t')[1]).filter((n) => n && !n.endsWith('.monitor') && !isOurs(n));
 }
 
+// A Bluetooth headset's mic. Recording from it switches the headset from A2DP to
+// HSP/HFP (mono, 16 kHz) for everything it plays, so we only take it when asked to.
+const isBluetooth = (name) => /^bluez_input\./.test(name || '');
+
 // The mic to clean: the one the user picked, else the system default (remembered
 // across restarts, so it survives the clean mic being the default for a while).
+// Following the default never picks a Bluetooth mic while a wired or USB one exists.
 async function resolveInput() {
   if (settings.master && !isOurs(settings.master)) return settings.master;
   const def = await systemDefault();
-  if (!isOurs(def)) { if (settings.previousDefault !== def) { settings.previousDefault = def; settings.save(); } return def; }
   const names = await hardwareSources();
-  if (settings.previousDefault && names.includes(settings.previousDefault)) return settings.previousDefault;
-  return names.find((n) => n.startsWith('alsa_input')) || names[0] || '';
+  const wired = names.filter((n) => !isBluetooth(n));
+  const usable = (n) => n && !isOurs(n) && (!isBluetooth(n) || !wired.length);
+  if (usable(def)) { if (settings.previousDefault !== def) { settings.previousDefault = def; settings.save(); } return def; }
+  if (usable(settings.previousDefault) && names.includes(settings.previousDefault)) return settings.previousDefault;
+  return wired.find((n) => n.startsWith('alsa_input')) || wired[0] || names[0] || '';
 }
 
 // When the clean mic stops: hand the default back to the mic it was cleaning.
@@ -40,4 +47,4 @@ async function restore() {
   if (target) await run('pactl', ['set-default-source', target]);
 }
 
-module.exports = { resolveInput, restore, systemDefault, isOurs };
+module.exports = { resolveInput, restore, systemDefault, isOurs, isBluetooth };
